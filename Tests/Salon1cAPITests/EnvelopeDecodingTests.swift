@@ -366,4 +366,75 @@ struct EnvelopeDecodingTests {
         #expect(body.parameters?.ticketId == "745f78b9-b1ec-497b-b42e-961a9d9b610a")
         #expect(body.parameters?.availableClubs?.count == 2)
     }
+
+    @Test("getSalons decodes work_time and contact_information", .tags(.specContract))
+    func salonsEnvelope() async throws {
+        let client = try Client.stubbed(json: Fixture.salonsResponseJSON)
+        let body = try await client.getSalons(path: .init(salonId: "test-salon")).ok.body.json
+        let salon = try #require(body.parameters?.first)
+        #expect(salon.title == "OOO \"Салон красоты\"")
+        #expect(salon.workTime?.first?.day == 1)
+        #expect(salon.workTime?.first?.end == "22:00")
+        #expect(salon.contactInformation?.address == "г.Москва")
+    }
+
+    @Test("getRecordsList decodes the Records structure with Meta", .tags(.specContract))
+    func recordsListEnvelope() async throws {
+        let client = try Client.stubbed(json: Fixture.recordsListResponseJSON)
+        let body = try await client.getRecordsList(path: .init(salonId: "test-salon")).ok.body.json
+        let record = try #require(body.parameters?.first)
+        #expect(record.status == "confirmed")
+        #expect(record.client?.displayName == "Соновен Савелий Васильевич")
+        #expect(record.staffs?.first?.specialization?.title == "Врач стоматолог")
+        #expect(record.services?.first?.costPerUnit == 500)
+        #expect(record.createdUser?.title == "Администратор")
+        #expect(body.meta?.pageSize == 5)
+    }
+
+    @Test("updateRecord answers the same array, no Meta", .tags(.specContract))
+    func updateRecordEnvelope() async throws {
+        let client = try Client.stubbed(json: Fixture.recordsListResponseJSON.replacingOccurrences(
+            of: ",\n        \"Meta\": {\n            \"items_count\": 10,\n            \"pages_count\": 2,\n            \"page_current\": 1,\n            \"page_size\": 5\n        }",
+            with: ""
+        ))
+        let body = try await client.updateRecord(
+            path: .init(salonId: "test-salon"),
+            body: .json(.init(salonId: "test-salon", id: "7c802c46-a899-4da1-b87c-eb2d68254f0f", status: "ended"))
+        ).ok.body.json
+        #expect(body.parameters?.first?.id == "7c802c46-a899-4da1-b87c-eb2d68254f0f")
+    }
+
+    @Test("getServices decodes category object and staff array", .tags(.specContract))
+    func servicesListEnvelope() async throws {
+        let client = try Client.stubbed(json: Fixture.servicesListResponseJSON)
+        let body = try await client.getServices(path: .init(salonId: "test-salon")).ok.body.json
+        let service = try #require(body.parameters?.first)
+        #expect(service.category?.title == "Хирургия")
+        #expect(service.staff?.first?.seanceLength == 60)
+        #expect(service.active == true)
+        #expect(body.meta?.itemsCount == 10)
+    }
+
+    @Test("rateVisit answers the singular-Error envelope", .tags(.specContract))
+    func rateVisitEnvelope() async throws {
+        let client = try Client.stubbed(json: Fixture.rateVisitResponseJSON)
+        let body = try await client.rateVisit(
+            path: .init(salonId: "test-salon"),
+            body: .json(.init(recordId: "3daa8097-ff6a-11e7-b770-0050568b5c8d", staffId: "222d3814-49f4-11e7-b491-0050568b5c8d", rating: 5, comment: "Отличное обслуживание"))
+        ).ok.body.json
+        #expect(body.parameters?.result == true)
+        #expect(body.error == nil)
+    }
+
+    @Test("getComments decodes Pagination, tolerates missing staff", .tags(.specContract))
+    func commentsEnvelope() async throws {
+        let client = try Client.stubbed(json: Fixture.commentsResponseJSON)
+        let body = try await client.getComments(path: .init(salonId: "test-salon")).ok.body.json
+        #expect(body.parameters?.count == 2)
+        #expect(body.parameters?.first?.staff?.name == "Новикова Анна")
+        #expect(body.parameters?.last?.staff == nil)
+        #expect(body.parameters?.first?.client?.name == "Анна Каренина")
+        #expect(body.pagination?.itemsCount == 22)
+        #expect(body.pagination?.pageSize == 10)
+    }
 }
