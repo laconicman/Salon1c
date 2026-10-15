@@ -799,6 +799,35 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ClientVisitsResponse'
+    put:
+      operationId: "updateRecord"
+      tags: [services]
+      summary: "Изменение записи"
+      description: |
+        Изменяет время, комментарий, статус, длительность записи `id` в теле;
+        `salon_id` повторяется и в пути, и в теле — так объявлено (TD-6).
+        Ответ — массив `Records`, как у `getRecordsList`, но без `Meta`.
+        Делит путь с `getClientPlannedVisits` — GET того же URI: источник
+        описывает их в разных группах (Клиенты vs Услуги).
+        Источник: `salon1c.apib` → Group Услуги → records.
+      security:
+        - ApiKeyAuth: []
+          UserTokenAuth: []
+      parameters:
+        - $ref: '#/components/parameters/SalonId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecordUpdateRequest'
+      responses:
+        '200':
+          description: "Массив записей после изменения"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecordUpdateResponse'
 
   /hs/api/v1/tickets/{salon_id}:
     get:
@@ -850,6 +879,177 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TicketResponse'
+
+  /hs/api/v1/salons/{salon_id}/:
+    get:
+      operationId: "getSalons"
+      tags: [salons]
+      summary: "Информация о салонах"
+      description: |
+        Список доступных салонов с расписанием работы и контактной информацией;
+        один `apikey`, без `usertoken`.
+        Источник: `salon1c.apib` → Group Салоны → salons.
+      parameters:
+        - $ref: '#/components/parameters/SalonId'
+      responses:
+        '200':
+          description: "Массив салонов"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SalonsResponse'
+
+  /hs/api/v1/records_list/{salon_id}/:
+    get:
+      operationId: "getRecordsList"
+      tags: [services]
+      summary: "Информация о записях"
+      description: |
+        Выборка записей клиентов с фильтрацией и пагинацией (`Meta`).
+        Записная книжка — Data Structure `Records` источника.
+        Источник: `salon1c.apib` → Group Услуги → records_list.
+      security:
+        - ApiKeyAuth: []
+          UserTokenAuth: []
+      parameters:
+        - $ref: '#/components/parameters/SalonId'
+        - name: page
+          in: query
+          required: false
+          schema: {type: integer}
+        - name: count
+          in: query
+          required: false
+          schema: {type: integer}
+        - name: id
+          in: query
+          required: false
+          description: "Идентификатор записи"
+          schema: {type: string}
+        - name: client_id
+          in: query
+          required: false
+          description: "Идентификатор клиента"
+          schema: {type: string}
+      responses:
+        '200':
+          description: "Массив записей с пагинацией"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecordsListResponse'
+
+  /hs/api/v1/services/{salon_id}/:
+    get:
+      operationId: "getServices"
+      tags: [services]
+      summary: "Услуги записи"
+      description: |
+        Список услуг салона с ценами, длительностью, активностью и привязками,
+        с пагинацией (`Meta`). Таблица метода и Data Structure `Services`
+        расходятся в именах — `category` объект против `category_id`; `staff`
+        объект против массива — модель держит таблицу метода для `category`
+        и массив для `staff` (TD-6).
+        Источник: `salon1c.apib` → Group Услуги → services.
+      security:
+        - ApiKeyAuth: []
+          UserTokenAuth: []
+      parameters:
+        - $ref: '#/components/parameters/SalonId'
+        - $ref: '#/components/parameters/ServiceIdQuery'
+        - $ref: '#/components/parameters/StaffIdQuery'
+        - name: category_id
+          in: query
+          required: false
+          description: "Фильтрация по ID категории"
+          schema: {type: string}
+        - name: page
+          in: query
+          required: false
+          schema: {type: integer}
+        - name: count
+          in: query
+          required: false
+          schema: {type: integer}
+      responses:
+        '200':
+          description: "Массив услуг с пагинацией"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServicesListResponse'
+
+  /hs/api/v1/record_rating/{salon_id}:
+    post:
+      operationId: "rateVisit"
+      tags: [ratings]
+      summary: "Оценивание визита"
+      description: |
+        Устанавливает оценку и комментарий к визиту. `comment` объявлен number
+        в таблице, пример шлёт строку — модель держит пример (TD-6).
+        Ответ несёт `"Error": null` единственным числом — пятая регистровая
+        разновидность конверта (TD-5). Путь без завершающего `/`.
+        Источник: `salon1c.apib` → Group Оценки и комментарии клиентов → record_rating.
+      security:
+        - ApiKeyAuth: []
+          UserTokenAuth: []
+      parameters:
+        - $ref: '#/components/parameters/SalonId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RateVisitRequest'
+      responses:
+        '200':
+          description: "Результат оценивания"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RateVisitResponse'
+
+  /hs/api/v1/comments/{salon_id}/:
+    get:
+      operationId: "getComments"
+      tags: [ratings]
+      summary: "Оценки и комментарии клиентов"
+      description: |
+        Комментарии с оценками по сотруднику за период. `rating`, `page`,
+        `page_size` объявлены строками — так в источнике (TD-6). Пагинация здесь
+        под ключом `Pagination`, а не `Meta` — ещё одна разновидность конверта
+        (TD-5); пример источника синтаксически невалиден вокруг `Pagination`.
+        Источник: `salon1c.apib` → Group Оценки и комментарии клиентов → comments.
+      security:
+        - ApiKeyAuth: []
+          UserTokenAuth: []
+      parameters:
+        - $ref: '#/components/parameters/SalonId'
+        - $ref: '#/components/parameters/StartDateOptional'
+        - $ref: '#/components/parameters/EndDateOptional'
+        - $ref: '#/components/parameters/StaffIdQuery'
+        - name: rating
+          in: query
+          required: false
+          description: "Фильтр по оценке — объявлен строкой (TD-6)"
+          schema: {type: string}
+        - name: page
+          in: query
+          required: false
+          description: "Страница с 1 — объявлена строкой (TD-6)"
+          schema: {type: string}
+        - name: page_size
+          in: query
+          required: false
+          description: "Размер страницы, максимум 20, по умолчанию 10 — объявлен строкой (TD-6)"
+          schema: {type: string}
+      responses:
+        '200':
+          description: "Массив комментариев с пагинацией"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommentsResponse'
 
 components:
   securitySchemes:
@@ -2350,5 +2550,332 @@ components:
       properties:
         Parameters:
           $ref: '#/components/schemas/Ticket'
+        Errors:
+          $ref: '#/components/schemas/ApiError'
+
+    # --- Group Салоны ---------------------------------------------------------
+
+    WorkTimeEntry:
+      type: object
+      description: "Рабочий день — Data Structure `WorkTime`. `day`: 1 — понедельник, 7 — воскресенье; `end` «может быть пустым»."
+      properties:
+        active:
+          type: boolean
+        day:
+          type: integer
+        start:
+          type: string
+          description: "Начало работы, `HH:mm`"
+        end:
+          type: string
+          description: "Конец работы, `HH:mm`; бывает пустым"
+    ContactInformation:
+      type: object
+      description: "Контакты салона — Data Structure `ContactInformation`."
+      properties:
+        phone:
+          type: string
+        email:
+          type: string
+        address:
+          type: string
+        website:
+          type: string
+    Salon:
+      type: object
+      description: "Салон — Data Structure `Salon`."
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        work_time:
+          type: array
+          items:
+            $ref: '#/components/schemas/WorkTimeEntry'
+        contact_information:
+          $ref: '#/components/schemas/ContactInformation'
+    SalonsResponse:
+      type: object
+      description: "PascalCase-конверт."
+      properties:
+        Parameters:
+          type: array
+          items:
+            $ref: '#/components/schemas/Salon'
+        Errors:
+          $ref: '#/components/schemas/ApiError'
+
+    # --- Group Услуги ---------------------------------------------------------
+
+    RecordClientInfo:
+      type: object
+      description: "Клиент записи — Data Structure `ClientInfo`."
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        surname:
+          type: string
+        patronymic:
+          type: string
+        display_name:
+          type: string
+        phone:
+          type: string
+        email:
+          type: string
+    RecordStaffInfo:
+      type: object
+      description: "Сотрудник записи — Data Structure `StaffInfo`; `avatar`/`specialization` бывают `null`."
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        specialization:
+          $ref: '#/components/schemas/StaffSpecialization'
+        weight:
+          type: number
+        information:
+          type: string
+          description: "HTML-строка"
+        avatar:
+          type: string
+    RecordServiceItem:
+      type: object
+      description: "Услуга записи — Data Structure `Service`."
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        cost:
+          type: number
+        amount:
+          type: number
+        cost_per_unit:
+          type: number
+        first_cost:
+          type: number
+        discount:
+          type: number
+          description: "Скидка в процентах"
+    RecordAuthor:
+      type: object
+      description: "Автор записи — Data Structure `UserInfo`; бывает `null`."
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+    RecordEntry:
+      type: object
+      description: "Запись — Data Structure `Records`. `status` — открытая строка: `confirmed`, `not_confirmed`, `waiting`, `started`, `not_happen`, `ended`, `canceled`. Даты — ISO-8601 строками."
+      properties:
+        id:
+          type: string
+        salon_id:
+          type: string
+        start_date:
+          type: string
+        end_date:
+          type: string
+        create_date:
+          type: string
+        status:
+          type: string
+        comment:
+          type: string
+        client:
+          $ref: '#/components/schemas/RecordClientInfo'
+        staffs:
+          type: array
+          items:
+            $ref: '#/components/schemas/RecordStaffInfo'
+        services:
+          type: array
+          items:
+            $ref: '#/components/schemas/RecordServiceItem'
+        created_user:
+          $ref: '#/components/schemas/RecordAuthor'
+    RecordsListResponse:
+      type: object
+      description: "PascalCase-конверт с `Meta`."
+      properties:
+        Parameters:
+          type: array
+          items:
+            $ref: '#/components/schemas/RecordEntry'
+        Errors:
+          $ref: '#/components/schemas/ApiError'
+        Meta:
+          $ref: '#/components/schemas/Meta'
+    RecordUpdateRequest:
+      type: object
+      description: "Тело изменения записи; `salon_id` продублирован из пути (TD-6). `status` — тот же открытый список, что у `RecordEntry`."
+      required:
+        - salon_id
+        - id
+      properties:
+        salon_id:
+          type: string
+        id:
+          type: string
+        datetime:
+          type: string
+          description: "Новое время записи"
+        comment:
+          type: string
+        status:
+          type: string
+        duration:
+          type: number
+          description: "Новая длительность"
+    RecordUpdateResponse:
+      type: object
+      description: "PascalCase-конверт; `Parameters` — массив записей (без `Meta`, в отличие от `getRecordsList`)."
+      properties:
+        Parameters:
+          type: array
+          items:
+            $ref: '#/components/schemas/RecordEntry'
+        Errors:
+          $ref: '#/components/schemas/ApiError'
+
+    SalonServiceStaff:
+      type: object
+      description: "Сотрудник услуги — Data Structure `ServiceStaff`."
+      properties:
+        id:
+          type: string
+        seance_length:
+          type: integer
+          description: "Длительность услуги у конкретного сотрудника, минуты"
+    SalonService:
+      type: object
+      description: "Услуга салона — таблица метода `services`; `staff` массивом (Data Structure `Services` показывает иначе — TD-6). `category`/`staff` бывают `null`."
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        price_min:
+          type: number
+        price_max:
+          type: number
+        weight:
+          type: number
+        category:
+          $ref: '#/components/schemas/ServiceCategory'
+        comment:
+          type: string
+        seance_length:
+          type: number
+          description: "Длительность по умолчанию, минуты"
+        active:
+          type: boolean
+          description: "Онлайн-запись услуги"
+        staff:
+          type: array
+          items:
+            $ref: '#/components/schemas/SalonServiceStaff'
+    ServicesListResponse:
+      type: object
+      description: "PascalCase-конверт с `Meta`."
+      properties:
+        Parameters:
+          type: array
+          items:
+            $ref: '#/components/schemas/SalonService'
+        Errors:
+          $ref: '#/components/schemas/ApiError'
+        Meta:
+          $ref: '#/components/schemas/Meta'
+
+    # --- Group Оценки и комментарии клиентов ----------------------------------
+
+    RateVisitRequest:
+      type: object
+      description: "Тело оценивания; `comment` — строкой по примеру (таблица ошибочно говорит number, TD-6); `rating` 0–10."
+      required:
+        - record_id
+        - staff_id
+        - rating
+        - comment
+      properties:
+        record_id:
+          type: string
+        staff_id:
+          type: string
+        rating:
+          type: number
+        comment:
+          type: string
+    RateVisitResponse:
+      type: object
+      description: "Конверт с `Error` единственным числом — единственная такая операция (TD-5)."
+      properties:
+        Parameters:
+          $ref: '#/components/schemas/ResultPayload'
+        Error:
+          $ref: '#/components/schemas/ApiError'
+
+    CommentStaffRef:
+      type: object
+      description: "Сотрудник комментария — `id`/`name`; отсутствует у части комментариев в примере."
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+    CommentClientRef:
+      type: object
+      description: "Клиент комментария."
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+    ClientComment:
+      type: object
+      description: "Комментарий клиента с оценками."
+      properties:
+        staff:
+          $ref: '#/components/schemas/CommentStaffRef'
+        text:
+          type: string
+        date:
+          type: string
+          description: "Дата оценки, ISO-8601"
+        ratings:
+          type: array
+          items:
+            $ref: '#/components/schemas/StaffRating'
+        client:
+          $ref: '#/components/schemas/CommentClientRef'
+    Pagination:
+      type: object
+      description: "Пагинация под ключом `Pagination` — тот же набор полей, что `Meta`, но другим ключом (TD-5)."
+      properties:
+        items_count:
+          type: integer
+        pages_count:
+          type: integer
+        page_current:
+          type: integer
+        page_size:
+          type: integer
+    CommentsResponse:
+      type: object
+      description: "PascalCase-конверт с `Pagination`."
+      properties:
+        Parameters:
+          type: array
+          items:
+            $ref: '#/components/schemas/ClientComment'
+        Pagination:
+          $ref: '#/components/schemas/Pagination'
         Errors:
           $ref: '#/components/schemas/ApiError'

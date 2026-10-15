@@ -818,5 +818,210 @@ enum Fixture {
         }
     }
     """#
+
+    /// `GET /hs/api/v1/salons/` → 200 — CONSTRUCTED per the `Salon`/`WorkTime`/
+    /// `ContactInformation` data structures; the doc shows no body example (TD-6).
+    static let salonsResponseJSON = #"""
+    {
+        "Parameters": [
+            {
+                "id": "0d190fc8-1c01-11ef-b1bf-f02f7488d897",
+                "title": "OOO \"Салон красоты\"",
+                "work_time": [
+                    {
+                        "active": true,
+                        "day": 1,
+                        "start": "07:00",
+                        "end": "22:00"
+                    }
+                ],
+                "contact_information": {
+                    "phone": "78945612233",
+                    "email": "test_salon@mail.ru",
+                    "address": "г.Москва",
+                    "website": "www.website.ru"
+                }
+            }
+        ],
+        "Errors": {
+            "code": 0,
+            "message": ""
+        }
+    }
+    """#
+
+    /// `GET /hs/api/v1/records_list/` → 200 — CONSTRUCTED per the `Records`
+    /// data structure's own defaults plus `Meta`; no body example in the doc.
+    static let recordsListResponseJSON = #"""
+    {
+        "Parameters": [
+            {
+                "id": "7c802c46-a899-4da1-b87c-eb2d68254f0f",
+                "salon_id": "0d190fc8-1c01-11ef-b1bf-f02f7488d897",
+                "start_date": "2025-06-30T12:00:00",
+                "end_date": "2025-06-30T12:15:00",
+                "create_date": "2025-06-30T09:49:06",
+                "status": "confirmed",
+                "comment": "Комментарий",
+                "client": {
+                    "id": "401b3cea-4d34-4234-b1c0-f5f96551c984",
+                    "name": "Савелий",
+                    "surname": "Соновен",
+                    "patronymic": "Васильевич",
+                    "display_name": "Соновен Савелий Васильевич",
+                    "phone": "79211234567",
+                    "email": "123456789@gmail.com"
+                },
+                "staffs": [
+                    {
+                        "id": "d39e5d29-740d-44a1-8c0d-9c873a43805c",
+                        "name": "Врач",
+                        "specialization": {
+                            "id": "a19ee94d-1c00-11ef-b1bf-f02f7488d897",
+                            "title": "Врач стоматолог"
+                        },
+                        "weight": 0,
+                        "information": "<img...>",
+                        "avatar": null
+                    }
+                ],
+                "services": [
+                    {
+                        "id": "6ad4c14f-1c03-11ef-b1bf-f02f7488d897",
+                        "title": "Услуга 2",
+                        "cost": 500,
+                        "amount": 1,
+                        "cost_per_unit": 500,
+                        "first_cost": 500,
+                        "discount": 0
+                    }
+                ],
+                "created_user": {
+                    "id": "0d191059-1c01-11ef-b1bf-f02f7488d897",
+                    "title": "Администратор"
+                }
+            }
+        ],
+        "Errors": {
+            "code": 0,
+            "message": ""
+        },
+        "Meta": {
+            "items_count": 10,
+            "pages_count": 2,
+            "page_current": 1,
+            "page_size": 5
+        }
+    }
+    """#
+
+    /// `GET /hs/api/v1/services/` → 200 — CONSTRUCTED per the method's field
+    /// table (`category` object, `staff` array — the data structure disagrees,
+    /// TD-6); no body example in the doc.
+    static let servicesListResponseJSON = #"""
+    {
+        "Parameters": [
+            {
+                "id": "6ad4c14f-1c03-11ef-b1bf-f02f7488d897",
+                "title": "Услуга 2",
+                "price_min": 500,
+                "price_max": 500,
+                "weight": 0,
+                "category": {
+                    "id": "a19ee948-1c00-11ef-b1bf-f02f7488d897",
+                    "title": "Хирургия"
+                },
+                "comment": "",
+                "seance_length": 60,
+                "active": true,
+                "staff": [
+                    {
+                        "id": "ef0fd170-3c83-465d-836b-51d72d208831",
+                        "seance_length": 60
+                    }
+                ]
+            }
+        ],
+        "Errors": {
+            "code": 0,
+            "message": ""
+        },
+        "Meta": {
+            "items_count": 10,
+            "pages_count": 2,
+            "page_current": 1,
+            "page_size": 5
+        }
+    }
+    """#
+
+    /// `POST /hs/api/v1/record_rating/` → 200, verbatim: `"Error": null`,
+    /// singular — the fifth register variant (TD-5).
+    static let rateVisitResponseJSON = #"""
+    {
+        "Parameters": {
+            "Result": true
+        },
+        "Error": null
+    }
+    """#
+
+    /// `GET /hs/api/v1/comments/` → 200 — NOT verbatim: the doc's example is
+    /// invalid JSON (stray comma and a missing comma around `Pagination`).
+    /// Repaired; content unchanged. `Pagination` key — not `Meta` (TD-5).
+    static let commentsResponseJSON = #"""
+    {
+        "Parameters": [
+            {
+                "staff": {
+                    "id": "24ed443d-9a02-11e7-8931-2c4d546557dd",
+                    "name": "Новикова Анна"
+                },
+                "text": "Всё хорошо",
+                "date": "2017-11-20T00:00:00",
+                "ratings": [
+                    {
+                        "rating_parameter": {
+                            "id": "50a4f2a5-cdc4-11e7-893b-2c4d546557dd",
+                            "title": "Оценка"
+                        },
+                        "rating": 5
+                    }
+                ],
+                "client": {
+                    "id": "3d2ef2ef-acce-11e7-8672-2c4d546557dd",
+                    "name": "Анна Каренина"
+                }
+            },
+            {
+                "text": "Всё отлично",
+                "date": "2017-11-20T00:00:00",
+                "ratings": [
+                    {
+                        "rating_parameter": {
+                            "id": "50a4f2a5-cdc4-11e7-893b-2c4d546557dd",
+                            "title": "Оценка"
+                        },
+                        "rating": 5
+                    }
+                ],
+                "client": {
+                    "id": "90be43e8-bedd-11e7-8939-2c4d546557dd",
+                    "name": "Михайлов"
+                }
+            }
+        ],
+        "Pagination": {
+            "items_count": 22,
+            "pages_count": 3,
+            "page_current": 1,
+            "page_size": 10
+        },
+        "Errors": {
+            "code": 0,
+            "message": null
+        }
+    }
+    """#
 }
 
