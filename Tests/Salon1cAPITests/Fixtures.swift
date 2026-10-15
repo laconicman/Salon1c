@@ -1357,5 +1357,149 @@ enum Fixture {
         }
     }
     """#
+
+    // MARK: - Терминал самообслуживания (v2)
+
+    /// `GET /hs/api/v2/book_staff` → 200, verbatim.
+    static let terminalStaffResponseJSON = #"""
+    {
+        "parameters": [
+            {
+                "id": "e6c1b1fa-0571-11e7-a42a-0050568b5c8d",
+                "specialization_name": "5_Мастер по роговому покрову на конце пальцев",
+                "employee_name": "Крупко Елена Федоровна",
+                "image": "http://192.168.8.122:8085/Salon3/hs/api/files/5c55ccbd-cf1a-471a-9426-7fa9710c0e6e/e6c1b1fa-0571-11e7-a42a-0050568b5c8d-25817.jpeg"
+            }
+        ],
+        "errors": {
+            "code": 0,
+            "message": ""
+        }
+    }
+    """#
+
+    /// `GET /hs/api/v2/book_services` → 200, verbatim.
+    static let terminalServicesResponseJSON = #"""
+    {
+        "parameters": [
+            {
+                "id": "e21cf6d4-5a57-11e7-82e7-0050568b5c8d",
+                "title": "Гидромассаж",
+                "category_name": "Косметология",
+                "price": 2300,
+                "image": "http://192.168.8.122:8085/Salon3/hs/api/files/5c55ccbd-cf1a-471a-9426-7fa9710c0e6e/f3d08965-c757-11ee-80eb-04d4c44bd374"
+            }
+        ],
+        "errors": {
+            "code": 0,
+            "message": ""
+        }
+    }
+    """#
+
+    /// `GET /hs/api/v2/find_client_by_phone` → 200, verbatim.
+    static let terminalClientLookupJSON = #"""
+    {
+        "parameters": {
+            "client_found": true,
+            "client_data": {
+                "id": "bcade0eb-ebea-11ec-80a3-04d4c44bd374",
+                "phone": "79882843969",
+                "last_name": "",
+                "name": "Анна",
+                "second_name": "",
+                "usertoken": "0E4878891AFE6ED9A31C736B1F9DECCE"
+            }
+        },
+        "errors": {
+            "code": 0,
+            "message": ""
+        }
+    }
+    """#
+
+    /// `POST /hs/api/v2/auth` → 200, verbatim: PascalCase `UserToken` inside
+    /// the lowercase envelope — hybrid dialect (TD-5).
+    static let terminalAuthResponseJSON = #"""
+    {
+        "parameters": {
+            "UserToken": "9040A083D15FFF777A695EB266903EA5"
+        },
+        "errors": {
+            "code": 0,
+            "message": ""
+        }
+    }
+    """#
+
+    /// `GET /hs/api/v2/cart_cost` → 200, verbatim.
+    static let terminalCartCostJSON = #"""
+    {
+        "parameters": {
+            "cart": [
+                {
+                    "purchase": {
+                        "id": "e21cf6d4-5a57-11e7-82e7-0050568b5c8d",
+                        "title": "Гидромассаж",
+                        "type": "service",
+                        "description": "",
+                        "pictures": [
+                            "http://192.168.8.122:8085/Salon3/hs/api/files/5c55ccbd-cf1a-471a-9426-7fa9710c0e6e/f3d08965-c757-11ee-80eb-04d4c44bd374"
+                        ]
+                    },
+                    "count": 1,
+                    "price_type": {
+                        "id": "fa48036e-ef90-11e6-a7df-0050568b5c8d",
+                        "title": "Розничная цена"
+                    },
+                    "price": 2336,
+                    "nds": 1,
+                    "nds_sum": 0,
+                    "price_with_discount": 2236,
+                    "discount_sum": 100,
+                    "payment_amount": 2236,
+                    "payment_object": "service",
+                    "payment_method": "full_payment"
+                }
+            ],
+            "total_amount": 2236,
+            "total_discount": 100,
+            "may_be_payment": [
+                {
+                    "id": "22a871af-c9fa-11ee-80ec-04d4c44bd374",
+                    "title": "Бонусы",
+                    "type": "bonus",
+                    "payment_amount": 2236
+                }
+            ],
+            "promotions": [
+                {
+                    "type": "bonus",
+                    "title": "",
+                    "amount": 100
+                }
+            ]
+        },
+        "errors": {
+            "code": 0,
+            "message": ""
+        }
+    }
+    """#
+
+    /// `POST /hs/api/v2/payment` → 200, verbatim: lowercase `result` plus
+    /// `record_id` of the created visit.
+    static let terminalPaymentResponseJSON = #"""
+    {
+        "parameters": {
+            "result": true,
+            "record_id": "22a871af-c9fa-11ee-80ec-04d4c44bd374"
+        },
+        "errors": {
+            "code": 0,
+            "message": ""
+        }
+    }
+    """#
 }
 

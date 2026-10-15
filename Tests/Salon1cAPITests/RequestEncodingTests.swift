@@ -125,4 +125,14 @@ struct RequestEncodingTests {
         #expect(clientObject?["phone"] == "+79001001010")
         #expect(clientObject?["last_name"] == "Петров")
     }
+
+    @Test("v2 paths carry no salon_id and no trailing slash", .tags(.specContract))
+    func terminalPathShape() async throws {
+        let recorder = RequestRecorder()
+        let client = try Client.recording(recorder: recorder, json: Fixture.terminalStaffResponseJSON)
+        _ = try await client.getTerminalStaff(query: .init(datetime: "20170820T0000"))
+        let path = try #require(await recorder.request?.path)
+        #expect(path.hasPrefix("/hs/api/v2/book_staff?"))
+        #expect(!path.contains("salon_id"))
+    }
 }

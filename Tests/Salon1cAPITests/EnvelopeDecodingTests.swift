@@ -571,4 +571,84 @@ struct EnvelopeDecodingTests {
         #expect(filter.id == "price")
         #expect(filter.values?.map(\.id) == ["from", "to"])
     }
+
+    // MARK: - Терминал самообслуживания (v2)
+
+    @Test("getTerminalStaff decodes terminal staff field names", .tags(.specContract))
+    func terminalStaffEnvelope() async throws {
+        let client = try Client.stubbed(json: Fixture.terminalStaffResponseJSON)
+        let body = try await client.getTerminalStaff().ok.body.json
+        let staff = try #require(body.parameters?.first)
+        #expect(staff.id == "e6c1b1fa-0571-11e7-a42a-0050568b5c8d")
+        #expect(staff.employeeName == "Крупко Елена Федоровна")
+        #expect(staff.specializationName?.hasPrefix("5_") == true)
+    }
+
+    @Test("getTerminalServices decodes integer price", .tags(.specContract))
+    func terminalServicesEnvelope() async throws {
+        let client = try Client.stubbed(json: Fixture.terminalServicesResponseJSON)
+        let body = try await client.getTerminalServices(
+            query: .init(staffId: "e6c1b1fa-0571-11e7-a42a-0050568b5c8d")
+        ).ok.body.json
+        let service = try #require(body.parameters?.first)
+        #expect(service.title == "Гидромассаж")
+        #expect(service.price == 2300)
+        #expect(service.categoryName == "Косметология")
+    }
+
+    @Test("findClientByPhone decodes client_data with usertoken", .tags(.specContract))
+    func terminalClientLookup() async throws {
+        let client = try Client.stubbed(json: Fixture.terminalClientLookupJSON)
+        let body = try await client.findClientByPhone(
+            query: .init(phone: "79882843969")
+        ).ok.body.json
+        #expect(body.parameters?.clientFound == true)
+        #expect(body.parameters?.clientData?.usertoken == "0E4878891AFE6ED9A31C736B1F9DECCE")
+        #expect(body.parameters?.clientData?.name == "Анна")
+    }
+
+    @Test("authorizeTerminal decodes PascalCase UserToken in lowercase envelope", .tags(.specContract))
+    func terminalAuthHybrid() async throws {
+        let client = try Client.stubbed(json: Fixture.terminalAuthResponseJSON)
+        let body = try await client.authorizeTerminal(
+            body: .json(.init(phone: "+79882843957", name: "Иванов Иван"))
+        ).ok.body.json
+        #expect(body.parameters?.userToken == "9040A083D15FFF777A695EB266903EA5")
+    }
+
+    @Test("getTerminalCartCost decodes fiscalization fields", .tags(.specContract))
+    func terminalCartCostEnvelope() async throws {
+        let client = try Client.stubbed(json: Fixture.terminalCartCostJSON)
+        let body = try await client.getTerminalCartCost(
+            query: .init(cart: [.init(
+                purchaseId: "e21cf6d4-5a57-11e7-82e7-0050568b5c8d",
+                staffId: "e6c1b1fa-0571-11e7-a42a-0050568b5c8d"
+            )])
+        ).ok.body.json
+        let position = try #require(body.parameters?.cart?.first)
+        #expect(position.purchase?._type == "service")
+        #expect(position.nds == 1)
+        #expect(position.paymentObject == "service")
+        #expect(position.paymentMethod == "full_payment")
+        #expect(body.parameters?.mayBePayment?.first?._type == "bonus")
+        #expect(body.parameters?.totalDiscount == 100)
+    }
+
+    @Test("payTerminal decodes result plus record_id", .tags(.specContract))
+    func terminalPaymentEnvelope() async throws {
+        let client = try Client.stubbed(json: Fixture.terminalPaymentResponseJSON)
+        let body = try await client.payTerminal(
+            body: .json(.init(
+                transactionId: "1233232",
+                receiptNumber: "123",
+                cart: [.init(
+                    purchaseId: "e21cf6d4-5a57-11e7-82e7-0050568b5c8d",
+                    staffId: "e6c1b1fa-0571-11e7-a42a-0050568b5c8d"
+                )],
+                paymentList: [.init(_type: "cash", amount: 200)]
+            ))
+        ).ok.body.json
+        #expect(body.parameters?.result == true)
+        #expect(body.parameters?.recordId == "22a871af-c9fa-11ee-80ec-04d4c44bd374")
+    }
 }
