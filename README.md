@@ -1,5 +1,7 @@
 # Salon1cAPI
 
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/laconicman/Salon1c)
+
 A Swift client for the [1С:SPA-Салон API, редакция 3.0](https://salon1c.docs.apiary.io/),
 generated with [Swift OpenAPI Generator](https://github.com/apple/swift-openapi-generator)
 and exposed as-is, so every request the API accepts is expressible.
