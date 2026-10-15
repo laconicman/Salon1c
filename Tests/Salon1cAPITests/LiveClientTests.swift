@@ -13,22 +13,6 @@ import Testing
 ///
 /// Nothing here changes server-side state; the lifecycle that does lives in
 /// ``LiveMutatingTests`` behind a second switch.
-enum LiveEnvironment {
-    /// `nil` unless both `SALON1C_API_KEY` and `SALON1C_SALON_ID` are set non-blank —
-    /// the gate every live suite shares.
-    static var salon: (credentials: Credentials, salonId: String)? {
-        let env = ProcessInfo.processInfo.environment
-        func nonempty(_ key: String) -> String? {
-            env[key]
-                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-                .flatMap { $0.isEmpty ? nil : $0 }
-        }
-        guard let credentials = Credentials.environment,
-              let salonId = nonempty("SALON1C_SALON_ID") else { return nil }
-        return (credentials, salonId)
-    }
-}
-
 @Suite(
     "Live API",
     .tags(.live),
@@ -106,8 +90,7 @@ struct LiveClientTests {
     "Live API (mutating)",
     .tags(.live, .mutating),
     .enabled(
-        if: LiveEnvironment.salon != nil
-            && ProcessInfo.processInfo.environment["SALON1C_ALLOW_MUTATING_LIVE_TESTS"] == "1",
+        if: LiveEnvironment.salon != nil && LiveEnvironment.mutatingAllowed,
         "Set SALON1C_ALLOW_MUTATING_LIVE_TESTS=1 on top of the credentials to run"
     ),
     .timeLimit(.minutes(1)),
@@ -120,14 +103,14 @@ struct LiveMutatingTests {
     @Test(
         "createClient writes a findable test record",
         .enabled(
-            if: ProcessInfo.processInfo.environment["SALON1C_TEST_PHONE"] != nil,
+            if: LiveEnvironment.variable("SALON1C_TEST_PHONE") != nil,
             "Set SALON1C_TEST_PHONE to run"
         )
     )
     func createClientLive() async throws {
         let salon = try #require(LiveEnvironment.salon)
         let client = try Client(credentials: salon.credentials)
-        let phoneString = try #require(ProcessInfo.processInfo.environment["SALON1C_TEST_PHONE"])
+        let phoneString = try #require(LiveEnvironment.variable("SALON1C_TEST_PHONE"))
         // `ClientCreateRequest.phone` is the documented *numeric* variant (TD-6) —
         // digits only, e.g. "79001001010".
         let phone = try #require(

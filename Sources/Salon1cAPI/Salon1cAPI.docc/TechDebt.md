@@ -4,17 +4,27 @@ The numbered register. Each entry names its Cost (what it costs us today) and
 Discharge (what makes it go away). Code references items as `TD-n`; `openapi.yaml`
 inline notes carry the same tags.
 
-## TD-1 — Live wire behaviour unverified
+## TD-1 — Live wire behaviour unverified against the real host
 
-`HOST: http://cloud.salon1c.ru/api/` — HTTP-only, with an `/api` base prefix the
-paths never restate. The host has not answered a probe from this network since work
-began (likely geo-restriction or VPN requirement). Every modeling decision traces to
-the `.apib`, not to the wire.
+`HOST: http://cloud.salon1c.ru/api/` — HTTP-only; the host has never answered a probe
+from this network (likely geo-restriction or VPN requirement). **Partially discharged
+2026-10-15:** Apiary's built-in mock of the vendor's own Blueprint
+(`private-anon-5309c9fb20-salon1c.apiary-mock.com`) serves every documented example
+over real HTTP. The `Apiary mock` suite (`SALON1C_MOCK_TESTS=1`) exercises the generated
+client end-to-end against it and already falsified one assumption — the v2 paths carry
+a literal trailing slash (`/hs/api/v2/book_staff/{?datetime}` → `/hs/api/v2/book_staff/`);
+fixed before tagging. The mock also confirms the `/api` base prefix.
 
-**Cost:** the entire spec is an untested hypothesis until the `Live API` suite runs
-green — dormant behind `SALON1C_API_KEY` + `SALON1C_SALON_ID` +
-`SALON1C_USER_TOKEN`.
-**Discharge:** first live run; reconcile any drift in `openapi.yaml`.
+What the mock cannot prove: values the doc doesn't show (real `salon_id`s, auth flows,
+error codes ≠ 0, mutating paths), plus anything where the *document itself* is wrong —
+the mock replays the doc, warts included.
+
+**Cost:** modeling decisions that rest on undocumented detail remain hypotheses; the
+`Live API` suite stays dormant behind `SALON1C_API_KEY` + `SALON1C_SALON_ID` +
+`SALON1C_USER_TOKEN` (see `.env.example` — a git-ignored `.env` at the package root
+feeds the suite on a network where the host answers).
+**Discharge:** the `Live API` suite green against the real host; reconcile any drift
+in `openapi.yaml`.
 
 ## TD-2 — Constructed fixtures unverified
 
