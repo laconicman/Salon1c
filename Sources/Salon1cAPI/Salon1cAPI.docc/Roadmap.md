@@ -1,0 +1,42 @@
+# Roadmap
+
+Planned work, in priority order. Nothing here ships until the item above it does —
+the package was built in that order too.
+
+## Now — before `0.1.0`
+
+- **Documentation** — this catalog, plus a README that shows the same flow.
+- **Review passes** — DeepWiki (free, indexed `main`) then Devin Review on each PR.
+- **`0.1.0` tag** once the catalog and review debt are green.
+
+## Next — needs live access (TD-1)
+
+Everything that requires the host to answer: run the dormant `Live API` suite,
+replace constructed fixtures with wire captures (TD-2), settle the declared-vs-
+example conflicts (TD-6) in whichever direction the wire votes, and write the
+`WorkingWithSalon1c` claims down to observed behaviour instead of documented
+behaviour.
+
+The `Live API (mutating)` suite grows here too — `bookVisit`, `updateClient`,
+`refillDeposit` — each behind `SALON1C_ALLOW_MUTATING_LIVE_TESTS=1` and written
+only once a non-production salon is available to write to.
+
+## Then — convenience layer
+
+- **Envelope unwrapping.** An opt-in `client.salons()`-style facade that maps the
+  six dialects to one result type and throws on `errors.code != 0`. It must be
+  generated *from* the spec — handwritten unwrappers per operation is how
+  dialects rot.
+- **Error-code constants.** Once the catalog is complete (TD-3), generated
+  constants for the documented codes — not an enum, so unknown codes still
+  surface.
+- **Typed dates** for the operations whose format survives live verification
+  (TD-7).
+
+## Later — maybe
+
+- **Refresh/rotation for `usertoken`** — the document is silent on token
+  lifetime; `checkUserToken` exists for exactly this, and a middleware that
+  re-auths on `1067` is cheap once the semantics are confirmed.
+- **Watch/companion targets** — nothing blocks them today; no API surface needs
+  more than `URLSession`.
