@@ -116,9 +116,22 @@ Fix specification problems *in the document*, not in Swift — see
 ```
 
 The offline suites cover envelope decoding against verbatim doc examples, JSON-in-query
-serialization, the auth middleware and path shapes. `LiveClientTests` talks to the real API
-and self-skips without `SALON1C_API_KEY` + `SALON1C_SALON_ID` — dormant until credentials
-exist; the host is geo-restricted and may need a VPN.
+serialization, the auth middleware and path shapes.
+
+```console
+% SALON1C_MOCK_TESTS=1 swift test --filter "Apiary mock"   # network only — vendor's own mock
+```
+
+The Apiary project ships a mock server (`private-anon-5309c9fb20-salon1c.apiary-mock.com`)
+replaying the documented examples — `MockServerTests` drives the generated client
+end-to-end against it over real `URLSession`. It already caught a spec bug (v2
+trailing slashes).
+
+`LiveClientTests` talks to the real API and self-skips without `SALON1C_API_KEY` +
+`SALON1C_SALON_ID` — dormant until credentials exist; the host is geo-restricted and
+may need a VPN. Variables resolve from the environment **or a git-ignored `.env` at
+the package root** — `.env.example` lists them all — so a lab-bound machine needs no
+exports.
 
 ## License
 

@@ -126,13 +126,15 @@ struct RequestEncodingTests {
         #expect(clientObject?["last_name"] == "Петров")
     }
 
-    @Test("v2 paths carry no salon_id and no trailing slash", .tags(.specContract))
+    @Test("v2 templated paths carry no salon_id and keep the literal trailing slash", .tags(.specContract))
     func terminalPathShape() async throws {
+        // The .apib URI template `/hs/api/v2/book_staff/{?datetime}` leaves a literal
+        // trailing slash — and the Apiary mock 404s the slash-less form. Wire evidence.
         let recorder = RequestRecorder()
         let client = try Client.recording(recorder: recorder, json: Fixture.terminalStaffResponseJSON)
         _ = try await client.getTerminalStaff(query: .init(datetime: "20170820T0000"))
         let path = try #require(await recorder.request?.path)
-        #expect(path.hasPrefix("/hs/api/v2/book_staff?"))
+        #expect(path.hasPrefix("/hs/api/v2/book_staff/?"))
         #expect(!path.contains("salon_id"))
     }
 }

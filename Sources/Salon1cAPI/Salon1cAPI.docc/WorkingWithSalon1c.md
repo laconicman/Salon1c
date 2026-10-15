@@ -92,3 +92,39 @@ adds `receipt_number`.
 The API speaks five date dialects (`iso8601` basic, `dd.mm.yyyy`, `yyyy-mm-dd HH:MM`,
 ISO variants). The client keeps them `String` — parse with your own formatter, and
 expect the doc's declared format to be aspirational (TD-7).
+
+## Try it without credentials — the Apiary mock
+
+The vendor's Apiary project ships a mock server that replays the documented examples
+for every operation — no apikey, no salon, just network:
+
+```swift
+let mock = try Client(
+    serverURL: URL(string: "http://private-anon-5309c9fb20-salon1c.apiary-mock.com/api")!,
+    credentials: .init(apiKey: "anything", userToken: "anything")
+)
+```
+
+Handy for wiring a UI before credentials exist — but remember it replays the doc, so
+it can't teach you anything the doc doesn't say. The test suite's `Apiary mock` group
+(`SALON1C_MOCK_TESTS=1`) does exactly this over `URLSession`.
+
+For the real host, drop the variables in a git-ignored `.env` at the package root —
+`.env.example` lists them — or export them; the live suites read both.
+
+### Getting real credentials
+
+There is **no public API sandbox** — `cloud.salon1c.ru` is the vendor's own cloud
+where each salon deployment gets its `apikey` + `salon_id`, and the doc's example
+keys are placeholders, not demo credentials. The routes that exist:
+
+- **A salon's real deployment** — the production path: `apikey`/`salon_id` from the
+  salon's administrator.
+- **A demo base, self-published** — 1С's demo service (`demo.solutions.1c.ru`) lends
+  a demo 1С:Салон красоты base for ~30 days, and partners (`time1c.ru`, `demo-it.ru`)
+  host SPA-Салон demos. Per the vendor's knowledge base, the API surfaces when the
+  info base is published to a web server — so a demo base with published HTTP
+  services becomes a private lab. `Client.init(serverURL:)` exists for exactly this.
+- **Geography** — `salon1c.ru`, `cloud.salon1c.ru` and the Apiary docs have all been
+  unreachable from this network since work began; expect to need a VPN for anything
+  but the mock.

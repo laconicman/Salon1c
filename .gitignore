@@ -24,6 +24,7 @@ Package.resolved
 *-token
 .env
 .env.*
+!.env.example
 secrets.*
 *.pem
 *.p12

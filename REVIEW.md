@@ -32,8 +32,11 @@ this file — nothing here restates it. These are the diff-level cues and the no
   `Sources/Salon1cAPI/Salon1cAPI.docc/TechDebt.md` that does not name what discharged it.
 - Flag a new `// TODO` in `Sources/` that carries no `TD-n` register number.
 - Require a new live test to carry the `Live API` suite prefix and gate on
-  `SALON1C_API_KEY` + `SALON1C_SALON_ID`; require a second env gate
-  (`SALON1C_ALLOW_MUTATING_LIVE_TESTS=1`) if it creates or mutates server state.
+  `LiveEnvironment.salon` (`SALON1C_API_KEY` + `SALON1C_SALON_ID`); require
+  `LiveEnvironment.mutatingAllowed` if it creates or mutates server state.
+- Require a new test that touches any network host to gate on an env switch —
+  `SALON1C_MOCK_TESTS=1` for the Apiary mock, credentials for the real host — so
+  `swift test` stays hermetic.
 - Flag `.defaultIsolation(MainActor.self)` on the library target as a regression — generated
   code cannot compile under it (apple/swift-openapi-generator#796/#823).
 

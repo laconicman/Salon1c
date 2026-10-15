@@ -12,6 +12,7 @@ which makes it both the contract and the thing that may be wrong
 | Captured | 2026-10-15 |
 | Format | API Blueprint `FORMAT: 1A`, 4,091 lines |
 | Coverage | 53 operations: 47 on `/hs/api/v1/` + 6 on `/hs/api/v2/` |
+| **Apiary mock** | `http://private-anon-5309c9fb20-salon1c.apiary-mock.com` — anonymous, replays every documented example under the `/api` prefix; the `Apiary mock` test suite drives it (`SALON1C_MOCK_TESTS=1`). Verified 2026-10-15: it also confirms the `/api` base and the literal trailing slash on v2 templated paths |
 
 ## Re-check for changes
 
@@ -40,7 +41,8 @@ These are properties of the source itself, kept verbatim; each is also a `TD-n` 
   elsewhere; `payment_list.amount` is declared `number`, sent as `"136"` in a v2 example.
 - **Wire misspellings kept**: `visites`, `finished_visites` (paths), `salon_id` absent
   from v2 paths (deliberate).
-- **HOST is `http://cloud.salon1c.ru/api/`** while paths start `/hs/api/…`; whether the
-  combined base really carries `/api` — and whether HTTPS exists — is unverified (TD-1).
+- **HOST is `http://cloud.salon1c.ru/api/`** while paths start `/hs/api/…`; the `/api`
+  prefix is confirmed real (the Apiary mock routes on it), HTTPS availability and the
+  real host itself remain unverified (TD-1).
 - **Error codes 1000–1114** live inside `errors.code` on HTTP 200; only Клиенты-group
   operations document 201/400 statuses.

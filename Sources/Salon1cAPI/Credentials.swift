@@ -22,7 +22,7 @@ public extension Credentials {
     /// environment. `nil` when the API key is unset **or blank**, so callers and tests can
     /// decide what that means. In Xcode, set them under Edit Scheme → Run → Environment.
     ///
-    /// Blank counts as unset because every live suite gates on `environment != nil`. With a
+    /// Blank counts as unset because the live suites gate on a resolved non-nil. With a
     /// plain `map`, `SALON1C_API_KEY=""` produced a credential, switched the suites on, and
     /// failed them all as 401s instead of skipping — an empty variable is how a CI runner
     /// says "no key", not "this key".

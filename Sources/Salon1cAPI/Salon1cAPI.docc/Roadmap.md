@@ -11,11 +11,13 @@ the package was built in that order too.
 
 ## Next — needs live access (TD-1)
 
-Everything that requires the host to answer: run the dormant `Live API` suite,
-replace constructed fixtures with wire captures (TD-2), settle the declared-vs-
-example conflicts (TD-6) in whichever direction the wire votes, and write the
-`WorkingWithSalon1c` claims down to observed behaviour instead of documented
-behaviour.
+Everything that requires the **real** host to answer: run the dormant `Live API`
+suite (`.env` support added for lab-bound machines), replace constructed fixtures
+with wire captures (TD-2), settle the declared-vs-example conflicts (TD-6) in
+whichever direction the wire votes, and write the `WorkingWithSalon1c` claims down
+to observed behaviour instead of documented behaviour. The Apiary mock — discovered
+post-tag — already discharges the documented-example half of this; it caught the v2
+trailing-slash bug.
 
 The `Live API (mutating)` suite grows here too — `bookVisit`, `updateClient`,
 `refillDeposit` — each behind `SALON1C_ALLOW_MUTATING_LIVE_TESTS=1` and written
