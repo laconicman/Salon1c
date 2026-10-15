@@ -545,6 +545,312 @@ paths:
               schema:
                 $ref: '#/components/schemas/ResultEnvelope'
 
+  /hs/api/v1/client/{salon_id}/:
+    get:
+      operationId: "getClientInfo"
+      tags: [clients]
+      summary: "Информация о клиенте"
+      description: |
+        Карточка клиента, определяемого по `usertoken`. URI-шаблон источника
+        предусматривает и `client_id` строкой запроса, хотя проза говорит только
+        о `usertoken` — параметр смоделирован optional (TD-6).
+        Источник: `salon1c.apib` → Group Клиенты → client.
+      security:
+        - ApiKeyAuth: []
+          UserTokenAuth: []
+      parameters:
+        - $ref: '#/components/parameters/SalonId'
+        - name: client_id
+          in: query
+          required: false
+          description: "Идентификатор клиента; объявлен в URI-шаблоне, в прозе не описан (TD-6)"
+          schema:
+            type: string
+      responses:
+        '200':
+          description: "Карточка клиента"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientCardResponse'
+    post:
+      operationId: "createClient"
+      tags: [clients]
+      summary: "Создание клиента"
+      description: |
+        Создаёт клиента из полей `ClientCreate`. Тело повторяет `salon_id`
+        из пути — так объявлено в `+ Attributes` источника (TD-6).
+        `phone` объявлен `number` — редкое исключение среди строковых телефонов
+        документа (TD-6). Ответ — единственный задокументированный HTTP 201
+        вместе с `updateClientById`.
+        Источник: `salon1c.apib` → Group Клиенты → client (Создание клиента).
+      parameters:
+        - $ref: '#/components/parameters/SalonId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClientCreateRequest'
+      responses:
+        '201':
+          description: "Клиент создан"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientResponse'
+        '400':
+          description: "Неверные данные или отсутствует apikey — код 1001 в `Errors.code`"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorsEnvelope'
+    put:
+      operationId: "updateClientById"
+      tags: [clients]
+      summary: "Изменение клиента"
+      description: |
+        Изменяет клиента с `id` в теле; `phone` передавать не обязательно.
+        Ответ 201, как у создания — так документировано (TD-6).
+        Источник: `salon1c.apib` → Group Клиенты → client (Изменение клиента).
+      parameters:
+        - $ref: '#/components/parameters/SalonId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClientUpdateRequest'
+      responses:
+        '201':
+          description: "Клиент изменён"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientResponse'
+        '400':
+          description: "Неверные данные или отсутствует apikey"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorsEnvelope'
+
+  /hs/api/v1/clients/{salon_id}/:
+    post:
+      operationId: "searchClients"
+      tags: [clients]
+      summary: "Информация о клиентах"
+      description: |
+        Выборка клиентов базы с фильтрацией, выбором полей, сортировкой
+        и пагинацией — ответ несёт `Meta` (первый случай в документе).
+        `salon_id` повторяется в теле по `+ Attributes` источника (TD-6).
+        Источник: `salon1c.apib` → Group Клиенты → clients.
+      security:
+        - ApiKeyAuth: []
+          UserTokenAuth: []
+      parameters:
+        - $ref: '#/components/parameters/SalonId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClientsQuery'
+      responses:
+        '200':
+          description: "Список клиентов с пагинацией"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientsResponse'
+        '400':
+          description: "Неверные данные или заголовки"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorsEnvelope'
+
+  /hs/api/v1/deposit_list/{salon_id}/:
+    get:
+      operationId: "getClientAccounts"
+      tags: [clients]
+      summary: "Лицевые и бонусные счета клиента"
+      description: |
+        Счета клиента по `usertoken`; `with_advance` добавляет авансовый счёт
+        (у него `id` — `null`).
+        Источник: `salon1c.apib` → Group Клиенты → deposit_list.
+      security:
+        - ApiKeyAuth: []
+          UserTokenAuth: []
+      parameters:
+        - $ref: '#/components/parameters/SalonId'
+        - name: with_advance
+          in: query
+          required: false
+          description: "Истина — включить авансовый счёт"
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: "Массив счетов клиента"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientAccountsResponse'
+
+  /hs/api/v1/update_client/{salon_id}:
+    post:
+      operationId: "updateClientProfile"
+      tags: [clients]
+      summary: "Обновить информацию о клиенте"
+      description: |
+        Обновляет данные клиента, определяемого по `usertoken` — в отличие от
+        `updateClientById`, который меняет произвольного клиента по `id` под
+        одним `apikey`. Путь без завершающего `/`. В примере тела источника
+        ключ `"Email"` с большой буквы — модель держит `email` по таблице (TD-6).
+        Источник: `salon1c.apib` → Group Клиенты → update_client.
+      security:
+        - ApiKeyAuth: []
+          UserTokenAuth: []
+      parameters:
+        - $ref: '#/components/parameters/SalonId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClientProfileUpdate'
+      responses:
+        '200':
+          description: "Результат обновления и свежая карточка"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientProfileUpdateResponse'
+
+  /hs/api/v1/refill_deposit/{salon_id}:
+    post:
+      operationId: "refillDeposit"
+      tags: [clients]
+      summary: "Пополнить лицевой счет клиента"
+      description: |
+        Пополняет лицевой счёт. В примере запроса источника заголовки не
+        показаны вовсе — `usertoken` не навязан, заметка в TD-6.
+        Путь без завершающего `/`.
+        Источник: `salon1c.apib` → Group Клиенты → refill_deposit.
+      parameters:
+        - $ref: '#/components/parameters/SalonId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefillDepositRequest'
+      responses:
+        '200':
+          description: "Результат пополнения"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultEnvelope'
+
+  /hs/api/v1/records_history/{salon_id}/:
+    get:
+      operationId: "getClientVisitHistory"
+      tags: [clients]
+      summary: "История визитов клиента"
+      description: |
+        Массив оконченных визитов клиента по `usertoken`. Структура услуг здесь
+        `name`-ключевая — в отличие от `title`-ключевых `Visit` группы визитов
+        (TD-5); статусы `planned`/`arrived`/`ended` — открытая строка.
+        Источник: `salon1c.apib` → Group Клиенты → records_history.
+      security:
+        - ApiKeyAuth: []
+          UserTokenAuth: []
+      parameters:
+        - $ref: '#/components/parameters/SalonId'
+      responses:
+        '200':
+          description: "Массив визитов клиента"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientVisitsResponse'
+
+  /hs/api/v1/records/{salon_id}/:
+    get:
+      operationId: "getClientPlannedVisits"
+      tags: [clients]
+      summary: "Запланированные визиты клиента"
+      description: |
+        Массив предстоящих визитов клиента по `usertoken` — та же структура,
+        что у `getClientVisitHistory` (статус документирован только `planned`,
+        строка открыта).
+        Источник: `salon1c.apib` → Group Клиенты → records.
+      security:
+        - ApiKeyAuth: []
+          UserTokenAuth: []
+      parameters:
+        - $ref: '#/components/parameters/SalonId'
+      responses:
+        '200':
+          description: "Массив запланированных визитов"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientVisitsResponse'
+
+  /hs/api/v1/tickets/{salon_id}:
+    get:
+      operationId: "getClientTickets"
+      tags: [clients]
+      summary: "Список пакетов услуг, разовых услуг"
+      description: |
+        Пакеты и разовые услуги клиента по `usertoken`. Ключ `avialable_actions`
+        в ответе опечатан самим сервером — сохранён дословно; `total_frozen`,
+        `freeze_list` и прочие поля примера отсутствуют в таблице — optional.
+        Путь без завершающего `/`.
+        Источник: `salon1c.apib` → Group Клиенты → tickets.
+      security:
+        - ApiKeyAuth: []
+          UserTokenAuth: []
+      parameters:
+        - $ref: '#/components/parameters/SalonId'
+      responses:
+        '200':
+          description: "Массив пакетов и разовых услуг"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TicketsResponse'
+
+  /hs/api/v1/ticket/{salon_id}/:
+    get:
+      operationId: "getClientTicket"
+      tags: [clients]
+      summary: "Подробное описание пакета услуг"
+      description: |
+        Один пакет/разовая услуга по `id`; `Parameters` — объект, не массив.
+        Источник: `salon1c.apib` → Group Клиенты → ticket.
+      security:
+        - ApiKeyAuth: []
+          UserTokenAuth: []
+      parameters:
+        - $ref: '#/components/parameters/SalonId'
+        - name: id
+          in: query
+          required: true
+          description: "Идентификатор пакета услуг"
+          schema:
+            type: string
+      responses:
+        '200':
+          description: "Пакет услуг"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TicketResponse'
+
 components:
   securitySchemes:
     ApiKeyAuth:
@@ -1520,3 +1826,529 @@ components:
         transaction_id:
           type: string
           description: "Идентификатор транзакции"
+
+    # --- Group Клиенты --------------------------------------------------------
+
+    ClientRecordToRate:
+      type: object
+      description: "Визит, который клиент может оценить."
+      properties:
+        record_id:
+          type: string
+        service_title:
+          type: string
+        staff:
+          type: object
+          properties:
+            id:
+              type: string
+            name:
+              type: string
+        start_date:
+          type: string
+    ClientCardItem:
+      type: object
+      description: "Карта клиента. `card_type` — открытая строка: `electronic` | `barcode` | `magnetic`."
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        card_code:
+          type: string
+        card_type:
+          type: string
+        link:
+          type: string
+          description: "Ссылка на установку электронной карты"
+    ClientPromocode:
+      type: object
+      description: "Промокод клиента."
+      properties:
+        title:
+          type: string
+        promocode:
+          type: string
+    ClientCard:
+      type: object
+      description: "Карточка клиента. `status` — открытая строка: `new` | `constant` | `potential` | `lost`. `email` — массив адресов, в отличие от одиночного `email` в других операциях (TD-6)."
+      properties:
+        full_name:
+          type: string
+        name:
+          type: string
+        second_name:
+          type: string
+        last_name:
+          type: string
+        birthday:
+          type: string
+          description: "Дата рождения; в примерах `31.12.1990`"
+        sex:
+          type: string
+          description: "Пол представлением; в примере `null`"
+        email:
+          type: array
+          items:
+            type: string
+        records_to_rate:
+          type: array
+          items:
+            $ref: '#/components/schemas/ClientRecordToRate'
+        cards:
+          type: array
+          items:
+            $ref: '#/components/schemas/ClientCardItem'
+        promocodes:
+          type: array
+          items:
+            $ref: '#/components/schemas/ClientPromocode'
+        status:
+          type: string
+    ClientCardResponse:
+      type: object
+      description: "PascalCase-конверт; `Parameters` — карточка клиента."
+      properties:
+        Parameters:
+          $ref: '#/components/schemas/ClientCard'
+        Errors:
+          $ref: '#/components/schemas/ApiError'
+
+    ClientListItem:
+      type: object
+      description: "Клиент списка `searchClients` — Data Structure `Client` плюс поля `sex`/`sex_id`/`status`/`status_id` из таблицы метода (в самой структуре их нет — TD-6). `birth_date`/`email` бывают `null`."
+      properties:
+        id:
+          type: string
+        salon_id:
+          type: string
+        name:
+          type: string
+        surname:
+          type: string
+        patronymic:
+          type: string
+        birth_date:
+          type: string
+          description: "Дата рождения; бывает `null`"
+        phone:
+          type: string
+        email:
+          type: string
+          description: "Бывает `null`"
+        sold_amount:
+          type: number
+        visits_count:
+          type: number
+        sex:
+          type: string
+          description: "Пол представлением"
+        sex_id:
+          type: number
+          description: "Пол: 1 — мужской, 2 — женский, 0 — не указан"
+        status:
+          type: string
+          description: "Статус представлением"
+        status_id:
+          type: number
+          description: "Статус: 0 — потенциальный, 1 — новый, 2 — постоянный, 3 — потерянный, 4 — отказ"
+    ClientFilter:
+      type: object
+      description: "Фильтр выборки — Data Structure `Filter` источника. `type`: `id` | `name` | `surname` | `patronymic` | `phone` | `email`; `value` — «может быть как строкой, так и массивом строк»."
+      required:
+        - type
+        - value
+      properties:
+        type:
+          type: string
+        value:
+          oneOf:
+            - type: string
+            - type: array
+              items:
+                type: string
+    ClientsQuery:
+      type: object
+      description: "Тело выборки клиентов. `salon_id` обязателен и в пути, и здесь — так объявлено (TD-6). `order_by_direction`: `ASC` | `DESC`."
+      required:
+        - salon_id
+      properties:
+        salon_id:
+          type: string
+        page:
+          type: integer
+          description: "Номер страницы; по умолчанию 1"
+        count:
+          type: integer
+          description: "Записей на странице; по умолчанию 20"
+        order_by:
+          type: string
+          description: "Поле сортировки (`name`, `surname`, …)"
+        order_by_direction:
+          type: string
+          enum: [ASC, DESC]
+        fields:
+          type: array
+          items:
+            type: string
+          description: "Список возвращаемых полей клиента"
+        filters:
+          type: array
+          items:
+            $ref: '#/components/schemas/ClientFilter'
+    ClientsResponse:
+      type: object
+      description: "PascalCase-конверт с `Meta` — пагинация выборки."
+      properties:
+        Parameters:
+          type: array
+          items:
+            $ref: '#/components/schemas/ClientListItem'
+        Errors:
+          $ref: '#/components/schemas/ApiError'
+        Meta:
+          $ref: '#/components/schemas/Meta'
+    ErrorsEnvelope:
+      type: object
+      description: "Конверт ошибки без `Parameters` — документированные HTTP 400."
+      properties:
+        Errors:
+          $ref: '#/components/schemas/ApiError'
+
+    ClientCreateRequest:
+      type: object
+      description: "Создание клиента — Data Structure `ClientCreate` плюс `salon_id` тела. `phone` объявлен `number` — так в источнике (TD-6); `sex`: 0 — не указан, 1 — мужской, 2 — женский; `birth_date` в формате `YYYY-MM-DD` — четвёртый диалект дат (TD-7)."
+      required:
+        - salon_id
+        - phone
+      properties:
+        salon_id:
+          type: string
+        name:
+          type: string
+        surname:
+          type: string
+        patronymic:
+          type: string
+        phone:
+          type: number
+          description: "Телефон, только цифры — объявлен number, в отличие от строковых телефонов соседних операций"
+        email:
+          type: string
+        sex:
+          type: number
+        birth_date:
+          type: string
+    ClientUpdateRequest:
+      type: object
+      description: "Изменение клиента — `ClientCreate` плюс `id` и `salon_id` тела; `phone` здесь уже `string` (TD-6)."
+      required:
+        - salon_id
+        - id
+      properties:
+        salon_id:
+          type: string
+        id:
+          type: string
+        name:
+          type: string
+        surname:
+          type: string
+        patronymic:
+          type: string
+        phone:
+          type: string
+        email:
+          type: string
+        sex:
+          type: number
+        birth_date:
+          type: string
+    ClientResponse:
+      type: object
+      description: "PascalCase-конверт; `Parameters` — созданный/изменённый клиент (Data Structure `Client`)."
+      properties:
+        Parameters:
+          $ref: '#/components/schemas/ClientListItem'
+        Errors:
+          $ref: '#/components/schemas/ApiError'
+
+    DepositAccount:
+      type: object
+      description: "Лицевой/бонусный/авансовый счёт. `deposit_type` — открытая строка: `deposit` | `bonus` | `advance`. `id` — `null` у авансового счёта. `history_exist` объявлен string, пример шлёт boolean — модель держит пример (TD-6)."
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        deposit_type:
+          type: string
+        history_exist:
+          type: boolean
+    ClientAccountEntry:
+      type: object
+      description: "Счёт с остатком."
+      properties:
+        deposit:
+          $ref: '#/components/schemas/DepositAccount'
+        balance:
+          type: number
+    ClientAccountsResponse:
+      type: object
+      description: "PascalCase-конверт."
+      properties:
+        Parameters:
+          type: array
+          items:
+            $ref: '#/components/schemas/ClientAccountEntry'
+        Errors:
+          $ref: '#/components/schemas/ApiError'
+
+    ClientProfileUpdate:
+      type: object
+      description: "Тело обновления профиля. `sex` здесь number, в примере тела — число `2`; ключ `Email` примера — опечатка, модель держит `email` (TD-6)."
+      properties:
+        last_name:
+          type: string
+        name:
+          type: string
+        second_name:
+          type: string
+        birthday:
+          type: string
+          description: "Формат `31.12.1990`"
+        sex:
+          type: number
+          description: "1 — мужской, 2 — женский"
+        phone:
+          type: string
+        email:
+          type: string
+    ClientProfileResult:
+      type: object
+      description: "Свежая карточка после обновления; `sex` здесь представлением (`Женский`), `email` — массивом (TD-6)."
+      required:
+        - Result
+      properties:
+        Result:
+          type: boolean
+        data_client:
+          type: object
+          properties:
+            full_name:
+              type: string
+            name:
+              type: string
+            second_name:
+              type: string
+            last_name:
+              type: string
+            birthday:
+              type: string
+            sex:
+              type: string
+            email:
+              type: array
+              items:
+                type: string
+    ClientProfileUpdateResponse:
+      type: object
+      description: "PascalCase-конверт; `Errors` в примере `null`."
+      properties:
+        Parameters:
+          $ref: '#/components/schemas/ClientProfileResult'
+        Errors:
+          $ref: '#/components/schemas/ApiError'
+
+    RefillDepositRequest:
+      type: object
+      description: "Тело пополнения счёта."
+      required:
+        - transaction_id
+        - cost
+        - deposit_id
+      properties:
+        transaction_id:
+          type: string
+        cost:
+          type: number
+          description: "Сумма пополнения"
+        deposit_id:
+          type: string
+
+    ClientVisitServiceItem:
+      type: object
+      description: "Услуга визита клиента — `name`-ключевая, в отличие от `VisitServiceItem` группы визитов (TD-5)."
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+    ClientVisitStaff:
+      type: object
+      description: "Сотрудник визита клиента — `name`-ключевой."
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+    ClientVisitService:
+      type: object
+      description: "Оказанная услуга визита клиента."
+      properties:
+        start_date:
+          type: string
+        end_date:
+          type: string
+        service:
+          $ref: '#/components/schemas/ClientVisitServiceItem'
+        staff:
+          $ref: '#/components/schemas/ClientVisitStaff'
+        count:
+          type: number
+        sum:
+          type: number
+    ClientVisitRecord:
+      type: object
+      description: "Визит в истории/расписании клиента. `status` — открытая строка: `planned` | `arrived` | `ended`. `record_type`: `sequential` | `same_time` | `mixed`. В примерах `salon_name`/`salon_id`/`record_type` не показаны — optional."
+      properties:
+        id:
+          type: string
+        start_date:
+          type: string
+        end_date:
+          type: string
+        client:
+          type: object
+          properties:
+            id:
+              type: string
+            name:
+              type: string
+        status:
+          type: string
+        services:
+          type: array
+          items:
+            $ref: '#/components/schemas/ClientVisitService'
+        count_total:
+          type: number
+        sum_total:
+          type: number
+        record_type:
+          type: string
+        salon_name:
+          type: string
+        salon_id:
+          type: string
+    ClientVisitsResponse:
+      type: object
+      description: "PascalCase-конверт; `Parameters` — массив визитов клиента."
+      properties:
+        Parameters:
+          type: array
+          items:
+            $ref: '#/components/schemas/ClientVisitRecord'
+        Errors:
+          $ref: '#/components/schemas/ApiError'
+
+    TicketServiceEntry:
+      type: object
+      description: "Услуга пакета. `count` бывает `null` — услуги неограничены."
+      properties:
+        title:
+          type: string
+        count:
+          type: integer
+        count_reserves:
+          type: integer
+          description: "Зарезервированные занятия"
+    TicketClub:
+      type: object
+      description: "Салон, где доступен пакет."
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+    TicketActivation:
+      type: object
+      description: "Тип активации пакета; пример показывает `at_sale`."
+      properties:
+        title:
+          type: string
+        type:
+          type: string
+    Ticket:
+      type: object
+      description: "Пакет услуг / разовая услуга. `type` — `package` | `service`; `status` — `active` | `not_active` | `closed`. Ключ `avialable_actions` опечатан сервером — сохранён дословно. `count` бывает `null`. Поля `total_frozen`/`balance_frozen`/`min_frozen_count`/`total_guest_visit`/`balance_guest_visit`/`freeze_list` есть в примере, отсутствуют в таблице — optional (TD-6)."
+      properties:
+        title:
+          type: string
+        ticket_id:
+          type: string
+        item_id:
+          type: string
+        type:
+          type: string
+        status:
+          type: string
+        end_date:
+          type: string
+        start_status_date:
+          type: string
+        end_status_date:
+          type: string
+        active_date:
+          type: string
+        count:
+          type: number
+        service_list:
+          type: array
+          items:
+            $ref: '#/components/schemas/TicketServiceEntry'
+        avialable_actions:
+          type: array
+          items: {}
+          description: "Операции над пакетом; состав элементов не показан — схема открыта"
+        available_clubs:
+          type: array
+          items:
+            $ref: '#/components/schemas/TicketClub'
+        available_time:
+          type: string
+          description: "Ограничение по времени; в примере `null`"
+        type_activation:
+          $ref: '#/components/schemas/TicketActivation'
+        total_frozen:
+          type: number
+        balance_frozen:
+          type: number
+        min_frozen_count:
+          type: number
+        total_guest_visit:
+          type: number
+        balance_guest_visit:
+          type: number
+        freeze_list:
+          type: array
+          items: {}
+          description: "Заморозки пакета; состав элементов не показан"
+    TicketsResponse:
+      type: object
+      description: "PascalCase-конверт; `Parameters` — массив пакетов."
+      properties:
+        Parameters:
+          type: array
+          items:
+            $ref: '#/components/schemas/Ticket'
+        Errors:
+          $ref: '#/components/schemas/ApiError'
+    TicketResponse:
+      type: object
+      description: "PascalCase-конверт; `Parameters` — один пакет."
+      properties:
+        Parameters:
+          $ref: '#/components/schemas/Ticket'
+        Errors:
+          $ref: '#/components/schemas/ApiError'

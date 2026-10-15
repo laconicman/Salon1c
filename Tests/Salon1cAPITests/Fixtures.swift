@@ -507,5 +507,316 @@ enum Fixture {
         }
     }
     """#
+
+    /// `GET /hs/api/v1/client/` → 200, verbatim: Group Клиенты → client
+    /// (Информация о клиенте). `sex: null` kept; `email` is an array here.
+    static let clientCardResponseJSON = #"""
+    {
+        "Parameters": {
+            "full_name": "Коренина Анна",
+            "name": "Анна",
+            "second_name": "",
+            "last_name": "Коренина",
+            "birthday": "31.12.1990",
+            "sex": null,
+            "email": [
+                "Anna172@mail.ru",
+                "AnnaKorenina@mail.ru"
+            ],
+            "records_to_rate": [
+                {
+                    "record_id": "8f0e6b9e-9a3c-11e9-89ab-2c4d546557dd",
+                    "service_title": "Гидромассаж",
+                    "staff": {
+                        "id": "d7d792c2-0571-11e7-a42a-0050568b5c8d",
+                        "name": "Ипритова Инга Юрьевна"
+                    },
+                    "start_date": "2019-10-02T12:00:00"
+                }
+            ],
+            "cards": [
+                {
+                    "id": "523d8557-c5b5-11ea-89d3-2c4d546557dd",
+                    "title": "Карта №5902047170294",
+                    "card_code": "5902047170294",
+                    "card_type": "barcode",
+                    "link": ""
+                }
+            ],
+            "promocodes": [],
+            "status": "constant"
+        },
+        "Errors": {
+            "code": 0,
+            "message": null
+        }
+    }
+    """#
+
+    /// `POST /hs/api/v1/clients/` → 200 — CONSTRUCTED per the method's field
+    /// table and the `Client`/`Meta` data structures; the doc shows no body
+    /// example for this operation (TD-6).
+    static let clientsResponseJSON = #"""
+    {
+        "Parameters": [
+            {
+                "id": "47efc7f111104513a25b302e6712df59",
+                "salon_id": "0d190fc81c0111efb1bff02f7488d897",
+                "name": "Иван",
+                "surname": "Петров",
+                "patronymic": "Васильевич",
+                "birth_date": "07.10.1987",
+                "phone": "77777777777",
+                "email": "client21321@mail.ru",
+                "sold_amount": 0,
+                "visits_count": 5,
+                "sex": "Мужской",
+                "sex_id": 1,
+                "status": "Постоянный",
+                "status_id": 2
+            }
+        ],
+        "Errors": {
+            "code": 0,
+            "message": ""
+        },
+        "Meta": {
+            "items_count": 10,
+            "pages_count": 2,
+            "page_current": 1,
+            "page_size": 5
+        }
+    }
+    """#
+
+    /// `POST /hs/api/v1/client/` → 201 — CONSTRUCTED per `Parameters (Client)` +
+    /// `Errors`; the doc declares 201 without a body example (TD-6).
+    static let clientCreatedResponseJSON = #"""
+    {
+        "Parameters": {
+            "id": "47efc7f111104513a25b302e6712df59",
+            "salon_id": "0d190fc81c0111efb1bff02f7488d897",
+            "name": "Василий",
+            "surname": "Соновен",
+            "patronymic": "Васильевич",
+            "birth_date": "2011-01-01",
+            "phone": "79211234567",
+            "email": "123456789@gmail.com",
+            "sold_amount": 0,
+            "visits_count": 0
+        },
+        "Errors": {
+            "code": 0,
+            "message": ""
+        }
+    }
+    """#
+
+    /// `POST /hs/api/v1/clients/` and `client` → 400 — CONSTRUCTED per the
+    /// `ErrorBadRequest` data structure (`code: 1001` is its own example).
+    static let badRequestResponseJSON = #"""
+    {
+        "Errors": {
+            "code": 1001,
+            "message": "Неверный формат данных или отсутствует apikey"
+        }
+    }
+    """#
+
+    /// `GET /hs/api/v1/deposit_list/` → 200, verbatim: `history_exist` arrives
+    /// as a boolean where the field table declares string (TD-6).
+    static let clientAccountsResponseJSON = #"""
+    {
+        "Parameters": [
+            {
+                "deposit": {
+                    "id": "cced6215-8b97-11e9-89a0-2c4d546557dd",
+                    "title": "Основной",
+                    "deposit_type": "deposit",
+                    "history_exist": true
+                },
+                "balance": 1700
+            },
+            {
+                "deposit": {
+                    "id": "142b0943-8b99-11e9-89a0-2c4d546557dd",
+                    "title": "Бонусы",
+                    "deposit_type": "bonus",
+                    "history_exist": true
+                },
+                "balance": 1500
+            }
+        ],
+        "Errors": {
+            "code": 0,
+            "message": ""
+        }
+    }
+    """#
+
+    /// `POST /hs/api/v1/update_client/` → 200, verbatim: `sex` returns as the
+    /// localized representation, `email` as an array (TD-6); `Errors: null`.
+    static let clientProfileUpdateResponseJSON = #"""
+    {
+        "Parameters": {
+            "Result": true,
+            "data_client": {
+                "full_name": "Андреева Анна Сергеевна",
+                "name": "Анна",
+                "second_name": "Сергеевна",
+                "last_name": "Андреева",
+                "birthday": "31.12.1990",
+                "sex": "Женский",
+                "email": [
+                    "Andreeva1975@mail.ru"
+                ]
+            }
+        },
+        "Errors": null
+    }
+    """#
+
+    /// `GET /hs/api/v1/records_history/` → 200, verbatim (one visit, two
+    /// services): name-keyed service/staff structures (TD-5).
+    static let clientVisitsResponseJSON = #"""
+    {
+        "Parameters": [
+            {
+                "id": "5ee2827f-8a80-11e8-8963-2c4d546557dd",
+                "start_date": "2018-07-18T18:00:00",
+                "end_date": "2018-07-18T19:00:00",
+                "client": {
+                    "id": "c27e5408-6003-11e7-82e7-0050568b5c8d",
+                    "name": "Баранова Екатерина Сергеевна"
+                },
+                "status": "arrived",
+                "services": [
+                    {
+                        "start_date": "2018-07-18T19:00:00",
+                        "end_date": "2018-07-18T20:00:00",
+                        "service": {
+                            "id": "e21cf6d4-5a57-11e7-82e7-0050568b5c8d",
+                            "name": "Гидромассаж"
+                        },
+                        "staff": {
+                            "id": "d7d792c2-0571-11e7-a42a-0050568b5c8d",
+                            "name": "Ипритова Инга Юрьевна"
+                        },
+                        "count": 2,
+                        "sum": 4600
+                    }
+                ],
+                "count_total": 3,
+                "sum_total": 6600
+            }
+        ],
+        "Errors": {
+            "code": 0,
+            "message": ""
+        }
+    }
+    """#
+
+    /// `GET /hs/api/v1/tickets/` → 200, verbatim: the misspelled
+    /// `avialable_actions` key kept, frozen/guest fields are example-only.
+    static let ticketsResponseJSON = #"""
+    {
+        "Parameters": [
+            {
+                "ticket_id": "745f78b9-b1ec-497b-b42e-961a9d9b610a",
+                "title": "Пакет 6 услуг",
+                "item_id": "d30379c5-b494-11f0-b201-001a7dda7115",
+                "type": "package",
+                "count": 6,
+                "status": "active",
+                "active_date": "2025-10-29",
+                "end_date": "2025-10-30",
+                "start_status_date": "2025-10-29",
+                "end_status_date": "2025-10-30",
+                "total_frozen": 0,
+                "balance_frozen": 0,
+                "min_frozen_count": 0,
+                "total_guest_visit": 0,
+                "balance_guest_visit": 0,
+                "type_activation": {
+                    "title": "",
+                    "type": "at_sale"
+                },
+                "avialable_actions": [],
+                "freeze_list": [],
+                "service_list": [
+                    {
+                        "title": "Услуга 3",
+                        "count": 6,
+                        "count_reserves": 0
+                    }
+                ],
+                "available_time": null,
+                "available_clubs": [
+                    {
+                        "id": "d9acf4c2-ecb4-11ec-b151-f02f7488d897",
+                        "title": "Салон 1"
+                    }
+                ]
+            }
+        ],
+        "Errors": {
+            "code": 0,
+            "message": ""
+        }
+    }
+    """#
+
+    /// `GET /hs/api/v1/ticket/` → 200, verbatim: `Parameters` is the single
+    /// object, not an array.
+    static let ticketResponseJSON = #"""
+    {
+        "Parameters": {
+            "ticket_id": "745f78b9-b1ec-497b-b42e-961a9d9b610a",
+            "title": "Пакет 6 услуг",
+            "item_id": "d30379c5-b494-11f0-b201-001a7dda7115",
+            "type": "package",
+            "count": 6,
+            "status": "active",
+            "active_date": "2025-10-29",
+            "end_date": "2025-10-30",
+            "start_status_date": "2025-10-29",
+            "end_status_date": "2025-10-30",
+            "total_frozen": 0,
+            "balance_frozen": 0,
+            "min_frozen_count": 0,
+            "total_guest_visit": 0,
+            "balance_guest_visit": 0,
+            "type_activation": {
+                "title": "",
+                "type": "at_sale"
+            },
+            "avialable_actions": [],
+            "freeze_list": [],
+            "service_list": [
+                {
+                    "title": "Услуга 3",
+                    "count": 6,
+                    "count_reserves": 0
+                }
+            ],
+            "available_time": null,
+            "available_clubs": [
+                {
+                    "id": "d9acf4c2-ecb4-11ec-b151-f02f7488d897",
+                    "title": "Салон 1"
+                },
+                {
+                    "id": "04fa8ba4-2ebb-11ed-b15f-f02f7488d897",
+                    "title": "Салон 2"
+                }
+            ]
+        },
+        "Errors": {
+            "code": 0,
+            "message": ""
+        }
+    }
+    """#
 }
 
