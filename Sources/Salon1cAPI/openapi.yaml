@@ -1421,6 +1421,171 @@ paths:
               schema:
                 $ref: '#/components/schemas/FilterListResponse'
 
+  /hs/api/v2/book_staff:
+    get:
+      operationId: "getTerminalStaff"
+      tags: [terminal]
+      summary: "Сотрудники, доступные для записи"
+      description: |
+        Терминал самообслуживания: без `salon_id`, без завершающего `/`.
+        Нижний диалект конверта.
+        Источник: `salon1c.apib` → Group Терминал самообслуживания → book_staff.
+      parameters:
+        - name: datetime
+          in: query
+          required: false
+          description: "Дата `iso8601` (`20170820T0000`); по умолчанию — сегодня"
+          schema: {type: string}
+      responses:
+        '200':
+          description: "Доступные сотрудники"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TerminalStaffResponse'
+
+  /hs/api/v2/book_services:
+    get:
+      operationId: "getTerminalServices"
+      tags: [terminal]
+      summary: "Услуги, доступные для записи к сотруднику"
+      description: |
+        Терминал самообслуживания; `staff_id` обязателен.
+        Источник: `salon1c.apib` → Group Терминал самообслуживания → book_services.
+      parameters:
+        - name: staff_id
+          in: query
+          required: true
+          schema: {type: string}
+      responses:
+        '200':
+          description: "Доступные услуги"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TerminalServicesResponse'
+
+  /hs/api/v2/find_client_by_phone:
+    get:
+      operationId: "findClientByPhone"
+      tags: [terminal]
+      summary: "Клиент по номеру телефона"
+      description: |
+        Находит клиента и возвращает `usertoken` внутри `client_data`;
+        незарегистрированный под терминал клиент регистрируется на лету.
+        Источник: `salon1c.apib` → Group Терминал самообслуживания → find_client_by_phone.
+      parameters:
+        - name: phone
+          in: query
+          required: true
+          schema: {type: string}
+      responses:
+        '200':
+          description: "Признак нахождения и данные клиента"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TerminalClientLookupResponse'
+
+  /hs/api/v2/auth:
+    post:
+      operationId: "authorizeTerminal"
+      tags: [terminal]
+      summary: "Авторизация клиента терминала"
+      description: |
+        Авторизация без предварительной регистрации; возвращает `usertoken` —
+        PascalCase-поле внутри нижнего конверта, гибридный диалект (TD-5).
+        Источник: `salon1c.apib` → Group Терминал самообслуживания → auth.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TerminalAuthRequest'
+      responses:
+        '200':
+          description: "Ключ клиента"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TerminalAuthResponse'
+
+  /hs/api/v2/cart_cost:
+    get:
+      operationId: "getTerminalCartCost"
+      tags: [terminal]
+      summary: "Стоимость корзины терминала"
+      description: |
+        `cart` — обязательная JSON-строка `[{purchase_id, staff_id}]`, здесь
+        `staff_id` обязателен (в v1 — опционален). `payment_list` назван
+        «объектом», но пример POST v2 шлёт массив — держим массив (TD-6).
+        Позиции ответа несут `nds`/`payment_object`/`payment_method`, которых
+        нет у магазинных позиций.
+        Источник: `salon1c.apib` → Group Терминал самообслуживания → cart_cost.
+      security:
+        - ApiKeyAuth: []
+          UserTokenAuth: []
+      parameters:
+        - name: cart
+          in: query
+          required: true
+          description: "Строка JSON `[{\"purchase_id\":\"…\",\"staff_id\":\"…\"}]`"
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TerminalCartQueryItem'
+        - name: payment_list
+          in: query
+          required: false
+          description: "JSON-строка предварительных оплат; названа «объектом», пример v2 — массив (TD-6)"
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PaymentItem'
+        - name: promocode
+          in: query
+          required: false
+          schema: {type: string}
+      responses:
+        '200':
+          description: "Расчёт корзины с НДС и признаками расчёта"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TerminalCartCostResponse'
+
+  /hs/api/v2/payment:
+    post:
+      operationId: "payTerminal"
+      tags: [terminal]
+      summary: "Оплатить покупки терминала"
+      description: |
+        Создаёт документ продажи и документы оплаты; возвращает нижний
+        `result` и `record_id`. Пример тела шлёт `amount` строками
+        (`"136"`), хотя `PaymentList` объявлен `number` — держим
+        объявленный тип (TD-6).
+        Источник: `salon1c.apib` → Group Терминал самообслуживания → payment.
+      security:
+        - ApiKeyAuth: []
+          UserTokenAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TerminalPaymentRequest'
+      responses:
+        '200':
+          description: "Флаг успеха и идентификатор визита"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TerminalPaymentResponse'
+
 components:
   securitySchemes:
     ApiKeyAuth:
@@ -3723,5 +3888,241 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ProductFilter'
+        errors:
+          $ref: '#/components/schemas/ApiError'
+
+    # --- Group Терминал самообслуживания (v2) ---------------------------------
+
+    TerminalStaffItem:
+      type: object
+      description: "Сотрудник терминала — свои имена полей (`employee_name`/`specialization_name`), отличные от v1."
+      properties:
+        id:
+          type: string
+        specialization_name:
+          type: string
+        employee_name:
+          type: string
+        image:
+          type: string
+    TerminalStaffResponse:
+      type: object
+      description: "Нижний диалект конверта."
+      properties:
+        parameters:
+          type: array
+          items:
+            $ref: '#/components/schemas/TerminalStaffItem'
+        errors:
+          $ref: '#/components/schemas/ApiError'
+
+    TerminalServiceItem:
+      type: object
+      description: "Услуга терминала; `price` объявлена `int` — целочисленная (TD-6)."
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        category_name:
+          type: string
+        price:
+          type: integer
+        image:
+          type: string
+    TerminalServicesResponse:
+      type: object
+      description: "Нижний диалект конверта."
+      properties:
+        parameters:
+          type: array
+          items:
+            $ref: '#/components/schemas/TerminalServiceItem'
+        errors:
+          $ref: '#/components/schemas/ApiError'
+
+    TerminalClientData:
+      type: object
+      description: "Данные клиента терминала; `usertoken` — ключ для одноимённого заголовка последующих вызовов."
+      properties:
+        id:
+          type: string
+        phone:
+          type: string
+        last_name:
+          type: string
+        name:
+          type: string
+        second_name:
+          type: string
+        usertoken:
+          type: string
+    TerminalClientLookupPayload:
+      type: object
+      description: "`client_data` — `null`, когда `client_found` ложь."
+      properties:
+        client_found:
+          type: boolean
+        client_data:
+          $ref: '#/components/schemas/TerminalClientData'
+    TerminalClientLookupResponse:
+      type: object
+      description: "Нижний диалект конверта."
+      properties:
+        parameters:
+          $ref: '#/components/schemas/TerminalClientLookupPayload'
+        errors:
+          $ref: '#/components/schemas/ApiError'
+
+    TerminalAuthRequest:
+      type: object
+      description: "Запрос авторизации терминала; `birthday` — `31.12.1990`."
+      required:
+        - phone
+      properties:
+        phone:
+          type: string
+        name:
+          type: string
+        birthday:
+          type: string
+    TerminalAuthPayload:
+      type: object
+      description: "PascalCase-поле `UserToken` внутри нижнего конверта — гибридный диалект (TD-5)."
+      properties:
+        UserToken:
+          type: string
+    TerminalAuthResponse:
+      type: object
+      description: "Нижний конверт, PascalCase-полезная нагрузка."
+      properties:
+        parameters:
+          $ref: '#/components/schemas/TerminalAuthPayload'
+        errors:
+          $ref: '#/components/schemas/ApiError'
+
+    TerminalCartQueryItem:
+      type: object
+      description: "Покупка корзины терминала: `staff_id` обязателен, `count` в примере не встречается (услуги на терминале одноместные — TD-6)."
+      required:
+        - purchase_id
+        - staff_id
+      properties:
+        purchase_id:
+          type: string
+        staff_id:
+          type: string
+    TerminalPurchase:
+      type: object
+      description: "Номенклатура в корзине терминала; `type` — `service` | `package` | `gift_certificate`."
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        type:
+          type: string
+        description:
+          type: string
+        pictures:
+          type: array
+          items:
+            type: string
+    TerminalCartItem:
+      type: object
+      description: "Позиция расчёта корзины терминала; `nds`/`nds_sum`/`payment_object`/`payment_method` — признаки фискализации, которых нет у магазинных позиций."
+      properties:
+        purchase:
+          $ref: '#/components/schemas/TerminalPurchase'
+        count:
+          type: number
+        price_type:
+          $ref: '#/components/schemas/PriceType'
+        price:
+          type: number
+        nds:
+          type: number
+        nds_sum:
+          type: number
+        price_with_discount:
+          type: number
+        discount_sum:
+          type: number
+        payment_amount:
+          type: number
+        payment_object:
+          type: string
+        payment_method:
+          type: string
+    TerminalCartCostPayload:
+      type: object
+      description: "Полезная нагрузка расчёта корзины терминала."
+      properties:
+        cart:
+          type: array
+          items:
+            $ref: '#/components/schemas/TerminalCartItem'
+        total_amount:
+          type: number
+        total_discount:
+          type: number
+        may_be_payment:
+          type: array
+          items:
+            $ref: '#/components/schemas/PaymentAccount'
+        promotions:
+          type: array
+          items:
+            $ref: '#/components/schemas/Promotion'
+        promocode:
+          type: string
+    TerminalCartCostResponse:
+      type: object
+      description: "Нижний диалект конверта."
+      properties:
+        parameters:
+          $ref: '#/components/schemas/TerminalCartCostPayload'
+        errors:
+          $ref: '#/components/schemas/ApiError'
+
+    TerminalPaymentRequest:
+      type: object
+      description: "Тело оплаты терминала; `receipt_number` обязателен — номер чека ККМ. `payment_list` объявлен `PaymentList`, пример шлёт `amount` строками (TD-6) — держим `number`."
+      required:
+        - transaction_id
+        - receipt_number
+        - cart
+        - payment_list
+      properties:
+        transaction_id:
+          type: string
+        receipt_number:
+          type: string
+        cart:
+          type: array
+          items:
+            $ref: '#/components/schemas/TerminalCartQueryItem'
+        payment_list:
+          type: array
+          items:
+            $ref: '#/components/schemas/PaymentItem'
+        promocode:
+          type: string
+    TerminalPaymentResultPayload:
+      type: object
+      description: "Нижний `result` плюс `record_id` созданного визита."
+      required:
+        - result
+      properties:
+        result:
+          type: boolean
+        record_id:
+          type: string
+    TerminalPaymentResponse:
+      type: object
+      description: "Нижний диалект конверта."
+      properties:
+        parameters:
+          $ref: '#/components/schemas/TerminalPaymentResultPayload'
         errors:
           $ref: '#/components/schemas/ApiError'
