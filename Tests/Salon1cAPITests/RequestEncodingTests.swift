@@ -100,4 +100,29 @@ struct RequestEncodingTests {
         #expect(request.headerFields[.init("usertoken")!] == "256D323401901DB2BD42405FA54509B0")
         #expect(request.headerFields[.init("apikey")!] == "test-apikey")
     }
+
+    @Test("cart_cost rides cart and client as JSON strings in the query", .tags(.specContract))
+    func cartCostJSONQuery() async throws {
+        let recorder = RequestRecorder()
+        let client = try Client.recording(recorder: recorder, json: Fixture.cartCostResponseJSON)
+        _ = try await client.getCartCost(
+            path: .init(salonId: "test-salon"),
+            query: .init(
+                cart: [.init(purchaseId: "a62afb1e-97b2-11e7-b142-0050568b93ed", count: 2)],
+                client: .init(phone: "+79001001010", lastName: "Петров", name: "Пётр")
+            )
+        )
+        let request = try #require(await recorder.request)
+        let items = try queryItems(of: request)
+        let cart = try #require(items.first { $0.name == "cart" }?.value)
+        let cartData = try #require(cart.data(using: .utf8))
+        let cartArray = try JSONSerialization.jsonObject(with: cartData) as? [[String: Any]]
+        #expect(cartArray?.first?["purchase_id"] as? String == "a62afb1e-97b2-11e7-b142-0050568b93ed")
+        #expect(cartArray?.first?["count"] as? Int == 2)
+        let clientValue = try #require(items.first { $0.name == "client" }?.value)
+        let clientData = try #require(clientValue.data(using: .utf8))
+        let clientObject = try JSONSerialization.jsonObject(with: clientData) as? [String: String]
+        #expect(clientObject?["phone"] == "+79001001010")
+        #expect(clientObject?["last_name"] == "Петров")
+    }
 }

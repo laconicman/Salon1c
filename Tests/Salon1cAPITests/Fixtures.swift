@@ -9,10 +9,12 @@ import OpenAPIRuntime
 struct StubTransport: ClientTransport {
     let status: HTTPResponse.Status
     let json: String
+    let contentType: String
 
-    init(status: HTTPResponse.Status = .ok, json: String) {
+    init(status: HTTPResponse.Status = .ok, json: String, contentType: String = "application/json") {
         self.status = status
         self.json = json
+        self.contentType = contentType
     }
 
     func send(
@@ -22,7 +24,7 @@ struct StubTransport: ClientTransport {
         operationID: String
     ) async throws -> (HTTPResponse, HTTPBody?) {
         var response = HTTPResponse(status: status)
-        response.headerFields[.contentType] = "application/json"
+        response.headerFields[.contentType] = contentType
         return (response, HTTPBody(json))
     }
 }
@@ -82,10 +84,14 @@ struct FailingTransport: ClientTransport {
 extension Client {
     /// A client wired to `StubTransport` through the **production** configuration, so a
     /// decoding test exercises the same converter setup a real call would.
-    static func stubbed(status: HTTPResponse.Status = .ok, json: String) throws -> Client {
+    static func stubbed(
+        status: HTTPResponse.Status = .ok,
+        json: String,
+        contentType: String = "application/json"
+    ) throws -> Client {
         Client(
             serverURL: try Servers.Server1.url(),
-            transport: StubTransport(status: status, json: json)
+            transport: StubTransport(status: status, json: json, contentType: contentType)
         )
     }
 
@@ -1020,6 +1026,334 @@ enum Fixture {
         "Errors": {
             "code": 0,
             "message": null
+        }
+    }
+    """#
+
+    /// `GET /hs/api/v1/price_list/` → 200, verbatim (one item): `errors` nested
+    /// inside `parameters`, `price` as a string (TD-5/TD-6).
+    static let priceListResponseJSON = #"""
+    {
+        "parameters": {
+            "price_client": [
+                {
+                    "id": "367a2fcd-05be-11e8-b770-0050568b5c8d",
+                    "title": "Крем для тела",
+                    "type": "product",
+                    "category": {
+                        "id": "4614bc05-757f-11ea-89ba-2c4d546557dd",
+                        "title": "Запасы"
+                    },
+                    "price": "500",
+                    "description": null,
+                    "services": null,
+                    "validity": null,
+                    "available_time": null,
+                    "balance": 7,
+                    "country_origin": "БОСНИЯ И ГЕРЦЕГОВИНА",
+                    "article": "",
+                    "unit": "шт",
+                    "additional_details": [],
+                    "pictures": []
+                }
+            ],
+            "navigation": {
+                "current_page": 1,
+                "total_page": 1,
+                "contains_count": 2,
+                "total_count": 2,
+                "page_number": 1,
+                "page_count": 20
+            },
+            "errors": {
+                "code": 0,
+                "message": ""
+            }
+        }
+    }
+    """#
+
+    /// `GET /hs/api/v1/cart_cost/` → 200, verbatim (abbreviated): `gift_to`/
+    /// `delivery` null, `promocode` echoed, `payment_types` listed.
+    static let cartCostResponseJSON = #"""
+    {
+        "parameters": {
+            "cart": [
+                {
+                    "purchase": {
+                        "id": "c85e4472-cc8f-11e8-8973-2c4d546557dd",
+                        "title": "Крем для рук",
+                        "type": "product",
+                        "description": "",
+                        "services": null,
+                        "validity": null,
+                        "pictures": []
+                    },
+                    "count": 1,
+                    "price_type": {
+                        "id": "f4a196f7-772e-11ea-89ba-2c4d546557dd",
+                        "title": "Цена для онлайн-продажи"
+                    },
+                    "price": 1900,
+                    "discount_sum": 95,
+                    "price_with_discount": 1805,
+                    "payment_amount": 1805
+                }
+            ],
+            "total_amount": 950,
+            "total_discount": 50,
+            "gift_to": null,
+            "delivery": null,
+            "promocode": "SX786TZ8L6",
+            "may_be_payment": [
+                {
+                    "id": "83b95983-4813-11ea-89af-2c4d546557dd",
+                    "title": "Бонусы",
+                    "type": "bonus",
+                    "payment_amount": 950
+                }
+            ],
+            "promotions": [
+                {
+                    "type": "discount",
+                    "title": "Скидка 5% (Всегда)",
+                    "amount": 50
+                }
+            ],
+            "payment_types": [
+                {
+                    "type": "cash",
+                    "title": "Наличными"
+                }
+            ]
+        },
+        "errors": {
+            "code": 0,
+            "message": ""
+        }
+    }
+    """#
+
+    /// `POST /hs/api/v1/payment/` → 200, verbatim: lowercase `result` (TD-5).
+    static let lowercaseResultEnvelopeJSON = #"""
+    {
+        "parameters": {
+            "result": true
+        },
+        "errors": {
+            "code": 0,
+            "message": ""
+        }
+    }
+    """#
+
+    /// `GET /hs/api/v1/group_list/` → 200, verbatim: recursive `included_groups`,
+    /// `null` on leaves.
+    static let productGroupsResponseJSON = #"""
+    {
+        "parameters": [
+            {
+                "id": "d1ae629d-143d-11eb-8071-04d4c44bd374",
+                "title": "Шампуни",
+                "included_groups": null
+            },
+            {
+                "id": "f668be86-144a-11eb-8071-04d4c44bd374",
+                "title": "Крема",
+                "included_groups": [
+                    {
+                        "id": "31f2b19d-143e-11eb-8071-04d4c44bd374",
+                        "title": "Крема для рук",
+                        "included_groups": null
+                    }
+                ]
+            }
+        ],
+        "errors": {
+            "code": 0,
+            "message": ""
+        }
+    }
+    """#
+
+    /// `GET /hs/api/v1/contact_information/` → 200, verbatim (abbreviated).
+    static let storeContactsResponseJSON = #"""
+    {
+        "parameters": {
+            "id": "fa48036f-ef90-11e6-a7df-0050568b5c8d",
+            "name": "Салон красоты SpaExtreme",
+            "contact_information": [
+                {
+                    "type": "Телефон",
+                    "title": "+7 (495) 1111111"
+                },
+                {
+                    "type": "Сайт",
+                    "title": "https://example.ru"
+                }
+            ],
+            "work_schedule": "Пн: 09:30-18:00 Вт-Пт: 08:00-22:00",
+            "pictures": [
+                "http://192.168.8.122:8085/RepeaterSalon/hs/api/files/30a6b5df-e2f4-4970-aac7-d5962ac2d74e/508c17b0-1cec-11eb-8071-04d4c44bd374"
+            ]
+        },
+        "errors": {
+            "code": 0,
+            "message": ""
+        }
+    }
+    """#
+
+    /// `GET /hs/api/v1/order_list/` → 200, verbatim (one order, two purchases).
+    static let orderListResponseJSON = #"""
+    {
+        "parameters": {
+            "order_list": [
+                {
+                    "id": "c9726d0f-4689-11eb-8075-04d4c44bd374",
+                    "number": "00000000002",
+                    "shipment_date": null,
+                    "date": "2020-12-25T12:07:27",
+                    "status": "Открыт",
+                    "status_id": "c9726d0f-4689-11eb-8075-04d4c44bd312",
+                    "comment": "",
+                    "purchase_list": [
+                        {
+                            "title": "40002 Toss The Garter",
+                            "type": "product",
+                            "unit": "мл",
+                            "count": 3,
+                            "price": 500,
+                            "price_with_discount": 450,
+                            "discount_sum": 150,
+                            "payment_sum": 1350,
+                            "pictures": []
+                        }
+                    ],
+                    "order_price": 4500,
+                    "order_discount": 450,
+                    "order_with_discount": 4050
+                }
+            ],
+            "navigation": {
+                "current_page": 1,
+                "total_page": 1,
+                "contains_count": 1,
+                "total_count": 1,
+                "page_number": 1,
+                "page_count": 20
+            }
+        },
+        "errors": {
+            "code": 0,
+            "message": ""
+        }
+    }
+    """#
+
+    /// `GET /hs/api/v1/order_status_list/` → 200, verbatim (abbreviated).
+    static let orderStatusesResponseJSON = #"""
+    {
+        "parameters": [
+            {
+                "id": "fa182ee7-807b-11e9-8993-2c4d546554cd",
+                "title": "В работе"
+            },
+            {
+                "id": "fa182eea-807b-11e9-8993-2c4d546554cd",
+                "title": "Открыт"
+            }
+        ],
+        "errors": {
+            "code": 0,
+            "message": ""
+        }
+    }
+    """#
+
+    /// `GET /hs/api/v1/deposit_detail/` → 200, verbatim: `date` in the
+    /// `yyyy-mm-dd HH:MM` dialect (TD-7), negative costs for write-offs.
+    static let depositDetailResponseJSON = #"""
+    {
+        "parameters": {
+            "deposit_detail": [
+                {
+                    "id": "ac473e61-96e4-11eb-807e-04d4c44bd374",
+                    "date": "2021-04-06 17:28",
+                    "operation": "Взнос",
+                    "cost": 200
+                },
+                {
+                    "id": "997da790-8bf5-11eb-807c-04d4c44bd374",
+                    "date": "2021-03-23 18:34",
+                    "operation": "Списание",
+                    "cost": -15
+                }
+            ],
+            "navigation": {
+                "current_page": 1,
+                "contains_count": 5,
+                "total_page": 9,
+                "total_count": 44,
+                "page_number": 1,
+                "page_count": 5
+            }
+        },
+        "errors": {
+            "code": 0,
+            "message": ""
+        }
+    }
+    """#
+
+    /// `GET /hs/api/v1/delivery_list/` → 200, verbatim: `id: null` for pickup.
+    static let deliveryListResponseJSON = #"""
+    {
+        "parameters": [
+            {
+                "id": null,
+                "title": "Самовывоз (забрать в салоне по адресу: Москва, шоссейная 10, 56) БЕСПЛАТНО",
+                "price": 0,
+                "code": "pickup",
+                "checked": true
+            },
+            {
+                "id": "30238c7b-c530-11eb-8086-04d4c44bd374",
+                "title": "Доставка курьером в пределах МКАД 300 руб.",
+                "price": 300,
+                "code": "courier",
+                "checked": false
+            }
+        ],
+        "errors": {
+            "code": 0,
+            "message": ""
+        }
+    }
+    """#
+
+    /// `GET /hs/api/v1/filter_list/` → 200, verbatim (abbreviated).
+    static let filterListResponseJSON = #"""
+    {
+        "parameters": [
+            {
+                "id": "price",
+                "title": "Цена",
+                "values": [
+                    {
+                        "id": "from",
+                        "title": ""
+                    },
+                    {
+                        "id": "to",
+                        "title": ""
+                    }
+                ]
+            }
+        ],
+        "errors": {
+            "code": 0,
+            "message": ""
         }
     }
     """#
