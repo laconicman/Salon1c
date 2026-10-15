@@ -1,0 +1,32 @@
+.DS_Store
+.build
+/Packages
+xcuserdata/
+DerivedData/
+.swiftpm
+.swiftpm/configuration/registries.json
+.swiftpm/xcode/package.xcworkspace/contents.xcworkspacedata
+.netrc
+Package.resolved
+/*.xcodeproj
+.vscode
+.ci/
+.docc-build/
+.cursorignore
+
+# Credentials. The live suites read SALON1C_API_KEY / SALON1C_SALON_ID / SALON1C_USER_TOKEN
+# from the environment and the values live outside any repository — these patterns exist so
+# that a copy made "just for a minute" cannot be committed by accident.
+*.token
+*apikey*
+*usertoken*
+*auth-token*
+*-token
+.env
+.env.*
+secrets.*
+*.pem
+*.p12
+
+# Node tooling for the upstream docs cache (scripts/upstream-diff.sh)
+scripts/upstream/node_modules/

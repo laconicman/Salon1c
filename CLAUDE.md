@@ -1,0 +1,66 @@
+# Salon1cAPI
+
+Unofficial Swift client for the 1С:SPA-Салон API (редакция 3.0), generated with
+[swift-openapi-generator](https://github.com/apple/swift-openapi-generator). Sibling of
+`YandexDeliveryExpressAPI` and `YooMoneyAPIClient` — same shape, same rules.
+
+## Direction docs are authoritative
+
+Read these before proposing architecture, and update them when a decision changes. When they
+and this file disagree, believe them.
+
+| Article | Answers |
+|---|---|
+| [Design](Sources/Salon1cAPI/Salon1cAPI.docc/Design.md) | Every load-bearing decision, with the alternative that was rejected |
+| [Owning the Specification](Sources/Salon1cAPI/Salon1cAPI.docc/SpecOwnership.md) | Why `openapi.yaml` is hand-written, and what that obligates |
+| [Tech Debt](Sources/Salon1cAPI/Salon1cAPI.docc/TechDebt.md) | Numbered register (`TD-n`), each with Cost and Discharge |
+| [Roadmap](Sources/Salon1cAPI/Salon1cAPI.docc/Roadmap.md) | Planned work, priority order |
+| [Upstream cache](Upstream/salon1c/README.md) | The vendor's API Blueprint, verbatim, plus its internal defect list |
+
+Render: `swift package generate-documentation --target Salon1cAPI`
+
+## Rules specific to this repository
+
+1. **Fix spec problems in `openapi.yaml`, not in Swift.** We own the document — the vendor
+   publishes only an API Blueprint. A hand-written extension that works around a generated
+   shape is a workaround with a fixable root cause.
+2. **Never edit generated code, and never commit it.** The build plugin regenerates
+   `Client.swift` / `Types.swift` into the build directory.
+3. **`nameOverrides` is safe for properties, broken for operations.** Use `operationId` in
+   the document — verified upstream; write-up in
+   `../YooMoneyAPIClient/Upstream/nameoverrides-verbatim-casing.md`.
+4. **Platform floor is iOS 17 / macOS 14 / tvOS 17 / watchOS 10 / visionOS 1.** No
+   `@available` annotations belong in this package.
+5. **Swift Testing, not XCTest.** `#expect` by default, `#require` when later lines depend
+   on the value, tags for selection.
+6. **Errors are three channels here.** Documented non-2xx statuses (rare: 201/400 in the
+   PascalCase dialect) are enum cases; transport/decoding failures are thrown `ClientError`;
+   and `errors.code ≠ 0` inside a 200 body is a domain refusal that surfaces **as data** in
+   0.1 — do not silently collapse any of the three.
+7. **The two envelope dialects are per-op fidelity, never normalize.** Lowercase
+   `{parameters, errors}` vs PascalCase `{Parameters, Errors, Meta}` are different wire
+   shapes on different operation families. A "consistency" fix is a spec bug.
+8. **`apikey`/`usertoken` are literal-lowercase header names.** Header behaviour lives only
+   in `AuthMiddleware`; nowhere else sets headers.
+9. **Wire spellings stay.** `visites`, `finished_visites`, `salon_id`-less v2 paths — the
+   document keeps what the API serves; `operationId` gets the proper name.
+10. **Reference a debt item from code** as `// TODO(TD-n): …`.
+11. **Everything lands via PR.** `main` is protected; Devin Review runs on push and
+    `REVIEW.md` steers it. No AI attribution in commit messages or PR descriptions.
+12. **Documented behaviour is the contract until the wire disagrees.** There is no test
+    credential yet; where the .apib contradicts itself, the spec picks a shape and the
+    conflict is a `TD-n`, not a silent choice. Once live calls exist: replicate wire
+    behaviour that works; change it only on evidence.
+
+## Author's standing preferences
+
+Clarity over brevity. Prefer a vetted SPM over hand-rolling when the dependency is smaller
+than the problem — and say so explicitly when it is *not*. Cite sources in prose and in code
+comments. DRY, separation of concerns, low coupling / high cohesion are the three that get
+checked first.
+
+## Related skills
+
+`apple-swift-openapi-generator` · `swift-package-manager` · `swift-testing-expert` ·
+`swift-file-organization` · `software-development-principles` · `repo-init` ·
+`atomic-commits` · `git-branching`

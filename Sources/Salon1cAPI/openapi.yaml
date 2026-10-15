@@ -1,0 +1,99 @@
+openapi: 3.1.0
+info:
+  title: "API 1С:SPA-Салон, редакция 3.0"
+  description: |
+    Документация API для 1С:SPA-Салон, редакция 3.0.
+
+    Документ написан вручную по единственному опубликованному источнику —
+    API Blueprint на Apiary (https://salon1c.docs.apiary.io/), слепок которого
+    хранится в `Upstream/salon1c/salon1c.apib`. Происхождение каждой операции
+    и схемы прослеживается до раздела этого файла; расхождения внутри самого
+    источника задокументированы в TechDebt, а не «исправлены» молча.
+  version: "3.0"
+  contact:
+    name: "1С:Салон красоты"
+    url: "https://salon1c.ru"
+  license:
+    name: "Proprietary"
+
+servers:
+  - url: "http://cloud.salon1c.ru/api"
+    description: "Облачный сервер 1С, как задокументировано в HOST источника. Префикс `/api` и отсутствие HTTPS не проверены по проводу — TechDebt TD-1. Локальные развёртывания меняют базу целиком — `Client.init(serverURL:)`."
+
+security:
+  - ApiKeyAuth: []
+
+tags:
+  - name: auth
+    description: "Авторизация — варианты входа, usertoken, цифровая подпись"
+  - name: booking
+    description: "Запись на визит — услуги, сотрудники, даты, слоты, запись, перенос, отмена, стоимость"
+  - name: visits
+    description: "Визиты — списки оконченных и текущих визитов"
+  - name: visit-payment
+    description: "Оплата визитов — долговые визиты и оплата"
+  - name: clients
+    description: "Клиенты — карточки, счета, история, пакеты услуг"
+  - name: salons
+    description: "Салоны — справочная информация"
+  - name: services
+    description: "Услуги — записи и списки услуг"
+  - name: ratings
+    description: "Оценки и комментарии клиентов"
+  - name: shop
+    description: "Онлайн-магазин — прайс, корзина, заказы, доставка"
+  - name: terminal
+    description: "Терминал самообслуживания — API v2 без salon_id"
+
+paths: {}
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: apikey
+      description: "API-ключ салона. Передаётся на каждый запрос — источник показывает его в заголовках всех операций."
+    UserTokenAuth:
+      type: apiKey
+      in: header
+      name: usertoken
+      description: "Ключ авторизации клиента (UserToken), выдаётся методами авторизации. Требуется клиентским операциям — помечен `security` на уровне операции."
+  parameters:
+    SalonId:
+      name: salon_id
+      in: path
+      required: true
+      description: "Идентификатор салона (GUID). Присутствует во всех путях v1; у операций v2 его нет — это задокументированное расхождение, а не пропуск."
+      schema:
+        type: string
+  schemas:
+    ApiError:
+      type: object
+      description: "Объект ошибки домена: приходит внутри `errors`/`Errors` даже при HTTP 200. Коды 1000–1114 задокументированы в приложении источника; 0 — успех. Поле остаётся открытым integer: каталог не исчерпывающий."
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: integer
+          description: "Код ошибки; 0 — успех"
+        message:
+          type: [string, "null"]
+          description: "Описание ошибки; в примерах встречается и пустая строка, и null"
+    Meta:
+      type: object
+      description: "Пагинация в диалекте PascalCase (`Parameters`/`Errors`/`Meta`)."
+      properties:
+        items_count:
+          type: integer
+          description: "Общее количество найденных записей"
+        pages_count:
+          type: integer
+          description: "Общее количество страниц"
+        page_current:
+          type: integer
+          description: "Текущая страница"
+        page_size:
+          type: integer
+          description: "Размер страницы"
