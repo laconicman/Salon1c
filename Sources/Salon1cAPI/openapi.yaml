@@ -45,7 +45,165 @@ tags:
   - name: terminal
     description: "Терминал самообслуживания — API v2 без salon_id"
 
-paths: {}
+paths:
+  /hs/api/v1/auth_types/{salon_id}/:
+    get:
+      operationId: "getAuthTypes"
+      tags: [auth]
+      summary: "Получить доступные варианты авторизации"
+      description: |
+        Возвращает массив способов авторизации, доступных клиенту. Поле `method` —
+        способ: `incoming` (код подтверждения приходит клиенту) или `outgoing`
+        (клиент совершает действие — сообщение боту или звонок). Поле `type` —
+        канал: `sms`, `whats_app`, `call`, `outgoing_telegram`,
+        `outgoing_whatsapp`, `outgoing_call`; источник показывает и `email`,
+        которого нет в его же перечне — список открыт, поэтому `type`/`method`
+        остаются строками, а не перечислениями.
+        Источник: `salon1c.apib` → Group Авторизация → auth_types.
+      parameters:
+        - $ref: '#/components/parameters/SalonId'
+      responses:
+        '200':
+          description: "Список доступных вариантов авторизации"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthTypesResponse'
+
+  /hs/api/v1/auth/{salon_id}/:
+    post:
+      operationId: "authorize"
+      tags: [auth]
+      summary: "Авторизоваться"
+      description: |
+        Авторизация клиента через СМС-подтверждение или иной метод (`auth_type`).
+        Без `confirmation_code` система генерирует и отправляет новый код —
+        ответ в форме `AuthCodeSentEnvelope`. С корректным кодом возвращается
+        `UserToken` — ответ в форме `UserTokenEnvelope`, один и тот же HTTP 200,
+        поэтому `oneOf`.
+        URI-шаблон источника объявляет параметры и строкой запроса, и телом;
+        пример показывает тело — модель держит тело, расхождение в TD-4.
+        Источник: `salon1c.apib` → Group Авторизация → auth.
+      parameters:
+        - $ref: '#/components/parameters/SalonId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthRequest'
+      responses:
+        '200':
+          description: "Код отправлен или UserToken выдан — две документированные формы"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+
+  /hs/api/v1/validity_usertoken/{salon_id}/:
+    post:
+      operationId: "checkUserToken"
+      tags: [auth]
+      summary: "Валидность ключа пользователя"
+      description: |
+        Проверяет корректность и актуальность `usertoken`. `salon_id` в пути
+        обязателен, но на проверку не влияет — источник разрешает любой ID салона.
+        Ответ без обёртки: голый `{ "Result": bool }`, третья форма ответа в API.
+        Источник: `salon1c.apib` → Group Авторизация → validity_usertoken.
+      security:
+        - ApiKeyAuth: []
+          UserTokenAuth: []
+      parameters:
+        - $ref: '#/components/parameters/SalonId'
+      responses:
+        '200':
+          description: "Валидность ключа"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsertokenValidityResponse'
+
+  /hs/api/v1/private_auth/{salon_id}/:
+    post:
+      operationId: "authorizeWithSignature"
+      tags: [auth]
+      summary: "Авторизация с цифровой подписью"
+      description: |
+        Авторизация по клиентским данным и цифровой подписи `sign` (SHA-256),
+        подтверждающей целостность переданных данных. Как и у `auth`, URI-шаблон
+        перечисляет поля строкой запроса, а пример шлёт JSON-тело — модель держит
+        тело (TD-4).
+        Источник: `salon1c.apib` → Group Авторизация → private_auth.
+      parameters:
+        - $ref: '#/components/parameters/SalonId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PrivateAuthRequest'
+      responses:
+        '200':
+          description: "UserToken клиента"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserTokenEnvelope'
+
+  /hs/api/v1/auth_request/{salon_id}:
+    post:
+      operationId: "requestPhoneConfirmation"
+      tags: [auth]
+      summary: "Запрос на подтверждение номера телефона"
+      description: |
+        Формирует запрос на подтверждение номера: клиент либо отправляет сообщение
+        боту, либо звонит на указанный номер. `method` — способ:
+        `outgoing_telegram`, `outgoing_call`, `outgoing_whatsapp`. Ответ несёт
+        `outgoing_id` (номер или бот) и/или `link` для завершения. В таблице
+        источника поле опечатано `reqiest_id`, пример показывает `request_id` —
+        модель держит пример.
+        Источник: `salon1c.apib` → Group Авторизация → auth_request.
+      parameters:
+        - $ref: '#/components/parameters/SalonId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PhoneConfirmationRequest'
+      responses:
+        '200':
+          description: "Данные для подтверждения номера"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PhoneConfirmationResponse'
+
+  /hs/api/v1/auth_token/{salon_id}:
+    post:
+      operationId: "getClientToken"
+      tags: [auth]
+      summary: "Токен клиента при исходящей авторизации"
+      description: |
+        Выдаёт клиентский `UserToken`, если номер подтверждён (через
+        `requestPhoneConfirmation`). Неподтверждённый номер — ошибка 1201
+        внутри `Errors.code` при HTTP 200.
+        Источник: `salon1c.apib` → Group Авторизация → auth_token.
+      parameters:
+        - $ref: '#/components/parameters/SalonId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClientTokenRequest'
+      responses:
+        '200':
+          description: "UserToken клиента"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserTokenEnvelope'
 
 components:
   securitySchemes:
@@ -97,3 +255,207 @@ components:
         page_size:
           type: integer
           description: "Размер страницы"
+
+    # --- Group Авторизация -------------------------------------------------
+
+    AuthTypeItem:
+      type: object
+      description: "Вариант авторизации. `type`/`method` — открытые строки: источник перечисляет шесть типов и показывает седьмой (`email`) в своём же примере."
+      required:
+        - type
+        - title
+      properties:
+        type:
+          type: string
+          description: "Тип авторизации: `sms`, `whats_app`, `call`, `outgoing_telegram`, `outgoing_whatsapp`, `outgoing_call`; в примере источника встречается и `email`"
+        title:
+          type: string
+          description: "Представление типа авторизации"
+        method:
+          type: string
+          description: "Способ авторизации: `incoming` | `outgoing`. Задокументирован в прозе, отсутствует в примере ответа — потому optional."
+    AuthTypesResponse:
+      type: object
+      description: "Нижний (lowercase) диалект конверта."
+      properties:
+        parameters:
+          type: array
+          items:
+            $ref: '#/components/schemas/AuthTypeItem'
+        errors:
+          $ref: '#/components/schemas/ApiError'
+
+    AuthRequest:
+      type: object
+      description: "Тело авторизации. В URI-шаблоне источника поля продублированы и строкой запроса — модель держит тело (TD-4)."
+      required:
+        - login
+      properties:
+        login:
+          type: string
+          description: "Номер телефона клиента, только цифры (пример `79876543210`)"
+        confirmation_code:
+          type: string
+          description: "Код подтверждения; без него система генерирует и шлёт новый"
+        name:
+          type: string
+          description: "Имя клиента"
+        last_name:
+          type: string
+          description: "Фамилия клиента"
+        second_name:
+          type: string
+          description: "Отчество клиента"
+        birthday:
+          type: string
+          description: "Дата рождения в формате `31.12.1990`"
+        email:
+          type: string
+          description: "Электронная почта клиента"
+        auth_type:
+          type: string
+          description: "Выбранный тип авторизации; по умолчанию `sms`. Список — у `getAuthTypes`"
+    AuthCodeSentEnvelope:
+      type: object
+      description: "Форма ответа `authorize` «код отправлен»: гибридный регистр — `Request_id`/`Parameters`/`Error`/`ErrorMessage`, только у этой операции (TD-5). `Request_id` обязателен — это ключ-различитель ветки oneOf: без него любой объект декодировался бы первой веткой."
+      required:
+        - Request_id
+      properties:
+        Request_id:
+          type: string
+        Parameters:
+          type: object
+          properties:
+            sent_SMS:
+              type: boolean
+        Error:
+          type: integer
+        ErrorMessage:
+          type: [string, "null"]
+    UserTokenEnvelope:
+      type: object
+      description: "Конверт `Parameters`/`Errors` с выданным UserToken — общий ответ операций авторизации. `Parameters.UserToken` обязателен — второй ключ-различитель ветки oneOf у `authorize`."
+      required:
+        - Parameters
+      properties:
+        Parameters:
+          type: object
+          required:
+            - UserToken
+          properties:
+            UserToken:
+              type: string
+              description: "Ключ клиента для заголовка `usertoken`"
+        Errors:
+          $ref: '#/components/schemas/ApiError'
+    AuthResponse:
+      description: "Обе задокументированные формы ответа `authorize`: «код отправлен» или «UserToken выдан»."
+      oneOf:
+        - $ref: '#/components/schemas/AuthCodeSentEnvelope'
+        - $ref: '#/components/schemas/UserTokenEnvelope'
+
+    UsertokenValidityResponse:
+      type: object
+      description: "Без конверта — единственная операция с голым ответом (TD-5)."
+      properties:
+        Result:
+          type: boolean
+
+    PrivateAuthRequest:
+      type: object
+      required:
+        - sign
+      properties:
+        name:
+          type: string
+          description: "Имя клиента"
+        second_name:
+          type: string
+          description: "Отчество клиента"
+        last_name:
+          type: string
+          description: "Фамилия клиента"
+        phone:
+          type: string
+          description: "Телефон клиента (пример `79876543210`)"
+        email:
+          type: string
+          description: "Email клиента"
+        sex:
+          type: string
+          description: "Пол клиента: `1` — мужской, `2` — женский. Строкой — так в источнике"
+        birthday:
+          type: string
+          description: "Дата рождения в формате `31.12.1990`"
+        sign:
+          type: string
+          description: "Цифровая подпись (SHA-256)"
+
+    PhoneConfirmationRequest:
+      type: object
+      required:
+        - phone
+      properties:
+        request_id:
+          type: string
+          description: "Идентификатор запроса"
+        phone:
+          type: string
+          description: "Номер телефона клиента, только цифры"
+        method:
+          type: string
+          description: "Способ подтверждения: `outgoing_telegram`, `outgoing_call`, `outgoing_whatsapp`"
+        name:
+          type: string
+          description: "Имя клиента"
+        last_name:
+          type: string
+          description: "Фамилия клиента"
+        second_name:
+          type: string
+          description: "Отчество клиента"
+        birthday:
+          type: string
+          description: "Дата рождения в формате `31.12.1990`"
+        email:
+          type: string
+          description: "Электронная почта клиента"
+    PhoneConfirmationPayload:
+      type: object
+      description: "Данные для подтверждения номера; набор полей зависит от `method` — все optional."
+      properties:
+        outgoing_id:
+          type: string
+          description: "Номер телефона или идентификатор бота для подтверждения"
+        link:
+          type: string
+          description: "URL для завершения подтверждения"
+        request_id:
+          type: string
+          description: "Идентификатор запроса (в таблице источника опечатка `reqiest_id`)"
+        method:
+          type: string
+          description: "Способ подтверждения: `outgoing_telegram`, `outgoing_call`, `outgoing_whatsapp`"
+    PhoneConfirmationResponse:
+      type: object
+      description: "Верхний (PascalCase) диалект конверта."
+      properties:
+        Parameters:
+          $ref: '#/components/schemas/PhoneConfirmationPayload'
+        Errors:
+          $ref: '#/components/schemas/ApiError'
+
+    ClientTokenRequest:
+      type: object
+      required:
+        - request_id
+      properties:
+        request_id:
+          type: string
+          description: "Идентификатор запроса (из `requestPhoneConfirmation`)"
+        phone:
+          type: string
+          description: "Номер телефона клиента, только цифры"
+        method:
+          type: string
+          description: "Способ подтверждения; у `auth_types` это `outgoing`"
