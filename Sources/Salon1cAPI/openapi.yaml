@@ -205,6 +205,251 @@ paths:
               schema:
                 $ref: '#/components/schemas/UserTokenEnvelope'
 
+  /hs/api/v1/book_services/{salon_id}/:
+    get:
+      operationId: "getBookableServices"
+      tags: [booking]
+      summary: "Услуги, доступные для записи"
+      description: |
+        Возвращает массив услуг, доступных для записи. Отборы `staff_id` и `datetime`
+        сужают выдачу до услуг конкретного сотрудника и/или времени; `service_ids`
+        задаёт последовательность услуг, которую сотрудник должен оказать подряд
+        (при отсутствии таких сотрудников — ошибка 1080 в `Errors.code`).
+        Без отборов — все услуги всех сотрудников начиная с текущей даты сеанса.
+        В примере источника `Errors` отсутствует — поле остаётся optional.
+        Источник: `salon1c.apib` → Group Онлайн запись → book_services.
+      parameters:
+        - $ref: '#/components/parameters/SalonId'
+        - $ref: '#/components/parameters/StaffIdQuery'
+        - $ref: '#/components/parameters/DatetimeQuery'
+        - $ref: '#/components/parameters/ServiceIds'
+      responses:
+        '200':
+          description: "Массив доступных услуг"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookableServicesResponse'
+
+  /hs/api/v1/book_staff/{salon_id}/:
+    get:
+      operationId: "getBookableStaff"
+      tags: [booking]
+      summary: "Сотрудники, доступные для записи"
+      description: |
+        Возвращает массив сотрудников, доступных для записи. Отборы `service_id`
+        и `datetime` сужают выдачу; `service_ids` — последовательность услуг
+        (ошибка 1080, если таких сотрудников нет). Без отборов — все сотрудники,
+        могущие оказать хотя бы одну услугу, начиная с текущей даты сеанса.
+        Пример источника синтаксически невалиден (лишний блок `comments_count`)
+        и содержит опечатку `rsating` — модель держит таблицу полей (TD-6).
+        Источник: `salon1c.apib` → Group Онлайн запись → book_staff.
+      parameters:
+        - $ref: '#/components/parameters/SalonId'
+        - $ref: '#/components/parameters/ServiceIdQuery'
+        - $ref: '#/components/parameters/DatetimeQuery'
+        - $ref: '#/components/parameters/ServiceIds'
+      responses:
+        '200':
+          description: "Массив доступных сотрудников"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookableStaffResponse'
+
+  /hs/api/v1/book_dates/{salon_id}/:
+    get:
+      operationId: "getBookableDates"
+      tags: [booking]
+      summary: "Даты, доступные для записи"
+      description: |
+        Возвращает массив дат за период `start_date`–`end_date` (границы
+        автоматически расширяются до начала/конца дня). Отборы `service_id`,
+        `staff_id`, `service_ids` сужают до дат, когда можно записаться
+        на выбранное. Даты в ответе — ISO-8601 строками.
+        Источник: `salon1c.apib` → Group Онлайн запись → book_dates.
+      parameters:
+        - $ref: '#/components/parameters/SalonId'
+        - $ref: '#/components/parameters/StartDate'
+        - $ref: '#/components/parameters/EndDate'
+        - $ref: '#/components/parameters/ServiceIdQuery'
+        - $ref: '#/components/parameters/StaffIdQuery'
+        - $ref: '#/components/parameters/ServiceIds'
+      responses:
+        '200':
+          description: "Массив доступных дат"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookableDatesResponse'
+
+  /hs/api/v1/book_times/{salon_id}/:
+    get:
+      operationId: "getBookableTimes"
+      tags: [booking]
+      summary: "Слоты, доступные для записи"
+      description: |
+        Возвращает массив свободных слотов с `datetime` до конца дня. Отборы
+        `service_id`, `staff_id`, `service_ids` сужают выдачу; без `datetime`
+        используется текущая дата сеанса.
+        Источник: `salon1c.apib` → Group Онлайн запись → book_times.
+      parameters:
+        - $ref: '#/components/parameters/SalonId'
+        - $ref: '#/components/parameters/DatetimeQuery'
+        - $ref: '#/components/parameters/ServiceIdQuery'
+        - $ref: '#/components/parameters/StaffIdQuery'
+        - $ref: '#/components/parameters/ServiceIds'
+      responses:
+        '200':
+          description: "Массив доступных слотов"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookableTimesResponse'
+
+  /hs/api/v1/recording_dates/{salon_id}/:
+    get:
+      operationId: "getRecordingDates"
+      tags: [booking]
+      summary: "Даты записи"
+      description: |
+        Возвращает массив дат записей по сотрудникам за период; без `service_id`/
+        `staff_id` — интервалы всех доступных для записи сотрудников. Даты в
+        ответе идут строками `дд.мм.гггг чч:мм:сс` — третий диалект дат
+        документа (TD-7), тип остаётся `string`.
+        Источник: `salon1c.apib` → Group Онлайн запись → recording_dates.
+      parameters:
+        - $ref: '#/components/parameters/SalonId'
+        - $ref: '#/components/parameters/StartDate'
+        - $ref: '#/components/parameters/EndDate'
+        - $ref: '#/components/parameters/ServiceIdQuery'
+        - $ref: '#/components/parameters/StaffIdQuery'
+      responses:
+        '200':
+          description: "Массив дат записи по сотрудникам"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecordingDatesResponse'
+
+  /hs/api/v1/book_record/{salon_id}/:
+    post:
+      operationId: "bookVisit"
+      tags: [booking]
+      summary: "Запись на визит"
+      description: |
+        Записывает клиента на услуги (`record_array`) в указанное время к
+        выбранным сотрудникам; клиент определяется по `usertoken`. При первом
+        вызове создаётся визит и возвращается его идентификатор; пересекающиеся
+        по времени услуги трактуются как параллельные. Передав `record_id`
+        существующего визита, остальные поля не передают.
+        В примере тела источник вставил форму *ответа* (`Parameters`/`Errors`),
+        а список `+ Attributes` описывает плоское тело — модель держит
+        `+ Attributes` (TD-6). `Errors` в ответе бывает `null`.
+        Источник: `salon1c.apib` → Group Онлайн запись → book_record.
+      security:
+        - ApiKeyAuth: []
+          UserTokenAuth: []
+      parameters:
+        - $ref: '#/components/parameters/SalonId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BookVisitRequest'
+      responses:
+        '200':
+          description: "Результат записи; при статусе `TemporarilyReservedNeedPayment` — `sum` и `may_be_payment`"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookVisitResponse'
+
+  /hs/api/v1/change_record/{salon_id}/:
+    put:
+      operationId: "rescheduleVisit"
+      tags: [booking]
+      summary: "Перенос визита"
+      description: |
+        Проверяет возможность переноса визита на `datetime` и переносит, если
+        возможно. Успех — `Parameters.Result: true`.
+        Источник: `salon1c.apib` → Group Онлайн запись → change_record.
+      security:
+        - ApiKeyAuth: []
+          UserTokenAuth: []
+      parameters:
+        - $ref: '#/components/parameters/SalonId'
+        - $ref: '#/components/parameters/RecordId'
+        - name: datetime
+          in: query
+          required: true
+          description: "Новая дата и время визита в iso8601 (пример `20170820T1030`)"
+          schema:
+            type: string
+      responses:
+        '200':
+          description: "Результат переноса"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultEnvelope'
+
+  /hs/api/v1/cancel_record/{salon_id}/:
+    delete:
+      operationId: "cancelVisit"
+      tags: [booking]
+      summary: "Отмена записи"
+      description: |
+        Отменяет запись на визит. Успех — `Parameters.Result: true`;
+        `Errors` в примере `null`.
+        Источник: `salon1c.apib` → Group Онлайн запись → cancel_record.
+      security:
+        - ApiKeyAuth: []
+          UserTokenAuth: []
+      parameters:
+        - $ref: '#/components/parameters/SalonId'
+        - $ref: '#/components/parameters/RecordId'
+      responses:
+        '200':
+          description: "Результат отмены"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultEnvelope'
+
+  /hs/api/v1/record_cost/{salon_id}/:
+    get:
+      operationId: "getRecordCost"
+      tags: [booking]
+      summary: "Расчет стоимости записи"
+      description: |
+        Рассчитывает стоимость визита с учётом услуг записи и действующих
+        маркетинговых акций; `record_array` — JSON-строка с параметрами записи
+        (тот же объект `RecordItem`, что в теле `bookVisit`). Для применения
+        скидок требуется `usertoken`. Ответ — нижний (lowercase) диалект
+        конверта, в отличие от соседей по группе (TD-5).
+        Источник: `salon1c.apib` → Group Онлайн запись → record_cost.
+      security:
+        - ApiKeyAuth: []
+          UserTokenAuth: []
+      parameters:
+        - $ref: '#/components/parameters/SalonId'
+        - $ref: '#/components/parameters/RecordArrayQuery'
+        - name: promocode
+          in: query
+          required: false
+          description: "Промокод"
+          schema:
+            type: string
+      responses:
+        '200':
+          description: "Корзина с итогами расчёта"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecordCostResponse'
+
 components:
   securitySchemes:
     ApiKeyAuth:
@@ -225,6 +470,68 @@ components:
       description: "Идентификатор салона (GUID). Присутствует во всех путях v1; у операций v2 его нет — это задокументированное расхождение, а не пропуск."
       schema:
         type: string
+    StaffIdQuery:
+      name: staff_id
+      in: query
+      required: false
+      description: "Идентификатор сотрудника (GUID)"
+      schema:
+        type: string
+    ServiceIdQuery:
+      name: service_id
+      in: query
+      required: false
+      description: "Идентификатор услуги (GUID)"
+      schema:
+        type: string
+    DatetimeQuery:
+      name: datetime
+      in: query
+      required: false
+      description: "Дата/время отбора в iso8601; источник иллюстрирует базовым форматом без разделителей (`20170820T0000`) — один из трёх диалектов дат документа (TD-7)"
+      schema:
+        type: string
+    StartDate:
+      name: start_date
+      in: query
+      required: true
+      description: "Начало периода в iso8601 (пример `20170820T0000`); автоматически берётся начало дня"
+      schema:
+        type: string
+    EndDate:
+      name: end_date
+      in: query
+      required: true
+      description: "Конец периода в iso8601 (пример `20170831T0000`); автоматически берётся конец дня"
+      schema:
+        type: string
+    RecordId:
+      name: record_id
+      in: query
+      required: true
+      description: "Идентификатор визита"
+      schema:
+        type: string
+    ServiceIds:
+      name: service_ids
+      in: query
+      required: false
+      description: "Строка JSON с массивом услуг, которые сотрудник должен оказать последовательно/одновременно. Пример источника: `{\"services_array\":[\"140df5b4-5a58-11e7-82e7-0050568b5c8d\"]}`. Моделируется как query-параметр с `content: application/json` — сериализация `setQueryItemAsJSON`."
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ServiceIdsQuery'
+    RecordArrayQuery:
+      name: record_array
+      in: query
+      required: true
+      description: "Строка JSON с массивом структур записи `{datetime, service_id, staff_id}`. Пример источника: `[{\"datetime\":\"20240831T1500\",\"service_id\":\"…\",\"staff_id\":\"…\"}]`."
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/RecordItem'
   schemas:
     ApiError:
       type: object
@@ -459,3 +766,457 @@ components:
         method:
           type: string
           description: "Способ подтверждения; у `auth_types` это `outgoing`"
+
+    # --- Group Онлайн запись -------------------------------------------------
+
+    ServiceIdsQuery:
+      type: object
+      description: "JSON-обёртка query-параметра `service_ids`; пример источника `{\"services_array\":[…]}`."
+      required:
+        - services_array
+      properties:
+        services_array:
+          type: array
+          items:
+            type: string
+          description: "Идентификаторы услуг в порядке оказания"
+
+    RecordItem:
+      type: object
+      description: "Структура записи из Data Structure `Record` источника. Общая: элемент `record_array` в теле `bookVisit` и в query-параметре `getRecordCost`."
+      required:
+        - datetime
+        - service_id
+      properties:
+        datetime:
+          type: string
+          description: "Дата и время занятия в iso8601 (пример `20240831T1500`)"
+        service_id:
+          type: string
+          description: "Идентификатор услуги"
+        staff_id:
+          type: string
+          description: "Идентификатор сотрудника; без него подставится любой свободный"
+
+    ServiceCategory:
+      type: object
+      description: "Специализация (категория) услуги."
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        title_local:
+          type: string
+          description: "Локализованное наименование; в примере отсутствует"
+
+    BookableService:
+      type: object
+      description: "Услуга, доступная для записи. Ключ `ServicesAtSameTime` — PascalCase среди snake_case-ключей объекта: ещё одна регистровая непоследовательность источника (TD-5), сохранена как есть."
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        title_local:
+          type: string
+        category:
+          $ref: '#/components/schemas/ServiceCategory'
+        price_min:
+          type: integer
+          description: "Минимальная стоимость услуги"
+        price_max:
+          type: integer
+          description: "Максимальная стоимость услуги"
+        comment:
+          type: string
+        comment_local:
+          type: string
+        active:
+          type: boolean
+        length:
+          type: integer
+          description: "Длительность оказания услуги в минутах"
+        ServicesAtSameTime:
+          type: array
+          items:
+            type: string
+          description: "Услуги, которые можно оказать одновременно с текущей"
+        sort_index:
+          type: integer
+        image:
+          type: string
+          description: "Фото услуги; в примере отсутствует"
+    BookableServicesResponse:
+      type: object
+      description: "PascalCase-конверт; в примере источника `Errors` отсутствует."
+      properties:
+        Parameters:
+          type: array
+          items:
+            $ref: '#/components/schemas/BookableService'
+        Errors:
+          $ref: '#/components/schemas/ApiError'
+
+    RatingParameter:
+      type: object
+      description: "Параметр оценки."
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+    StaffRating:
+      type: object
+      description: "Средняя оценка сотрудника по параметру. Во втором элементе примера источника ключ опечатан `rsating` — модель держит `rating` (TD-6). `rating` — number: в примерах встречается дробное 4.5."
+      properties:
+        rating_parameter:
+          $ref: '#/components/schemas/RatingParameter'
+        rating:
+          type: number
+        votes_count:
+          type: integer
+    StaffSpecialization:
+      type: object
+      description: "Должность сотрудника."
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        title_local:
+          type: string
+    BookableStaff:
+      type: object
+      description: "Сотрудник, доступный для записи."
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+          description: "ФИО сотрудника"
+        name_local:
+          type: string
+        specialization:
+          $ref: '#/components/schemas/StaffSpecialization'
+        weight:
+          type: integer
+          description: "Приоритет выбора сотрудника"
+        information:
+          type: string
+          description: "Дополнительная информация (HTML)"
+        information_local:
+          type: string
+        avatar:
+          type: string
+          description: "Путь к файлу аватарки"
+        upcoming_dates:
+          type: array
+          items:
+            type: string
+          description: "До трёх ближайших доступных дат (ISO-8601 строками в примере)"
+        upcoming_times:
+          type: array
+          items: {}
+          description: "До двенадцати ближайших интервалов на ближайшую дату; форма элементов источником не показана — схема открыта (TD-6)"
+        ratings:
+          type: array
+          items:
+            $ref: '#/components/schemas/StaffRating'
+        comments_count:
+          type: integer
+    BookableStaffResponse:
+      type: object
+      description: "PascalCase-конверт."
+      properties:
+        Parameters:
+          type: array
+          items:
+            $ref: '#/components/schemas/BookableStaff'
+        Errors:
+          $ref: '#/components/schemas/ApiError'
+
+    BookableDatesResponse:
+      type: object
+      description: "PascalCase-конверт; `Parameters` — массив дат ISO-8601 строками."
+      properties:
+        Parameters:
+          type: array
+          items:
+            type: string
+        Errors:
+          $ref: '#/components/schemas/ApiError'
+
+    BookTimeSlot:
+      type: object
+      description: "Слот записи."
+      properties:
+        time:
+          type: string
+          description: "Время слота (например, `10:30`)"
+        seance_length:
+          type: integer
+          description: "Длительность слота в минутах"
+        datetime:
+          type: string
+          description: "Дата и время слота, ISO-8601"
+    BookableTimesResponse:
+      type: object
+      description: "PascalCase-конверт."
+      properties:
+        Parameters:
+          type: array
+          items:
+            $ref: '#/components/schemas/BookTimeSlot'
+        Errors:
+          $ref: '#/components/schemas/ApiError'
+
+    RecordingDatesItem:
+      type: object
+      description: "Даты записи одного сотрудника; `date` — строки `дд.мм.гггг чч:мм:сс` (TD-7)."
+      properties:
+        id:
+          type: string
+          description: "Идентификатор сотрудника"
+        date:
+          type: array
+          items:
+            type: string
+    RecordingDatesResponse:
+      type: object
+      description: "PascalCase-конверт."
+      properties:
+        Parameters:
+          type: array
+          items:
+            $ref: '#/components/schemas/RecordingDatesItem'
+        Errors:
+          $ref: '#/components/schemas/ApiError'
+
+    BookVisitRequest:
+      type: object
+      description: "Плоское тело записи по списку `+ Attributes` источника (его пример тела ошибочно показывает форму ответа — TD-6). `record_array` обязателен, если не передан `record_id` существующего визита — условная обязательность описана, схемой не навязана."
+      properties:
+        record_array:
+          type: array
+          items:
+            $ref: '#/components/schemas/RecordItem'
+          description: "Массив записей; обязателен, если не передан `record_id`"
+        fullname:
+          type: string
+          description: "ФИО клиента через пробелы; при передаче игнорируются `name`/`last_name`/`second_name`"
+        name:
+          type: string
+        last_name:
+          type: string
+        second_name:
+          type: string
+        birthday:
+          type: string
+          description: "Дата рождения в формате `31.12.1990`"
+        email:
+          type: string
+        notify_by_sms:
+          type: number
+          description: "Время до напоминания о записи в часах"
+        comment:
+          type: string
+          description: "Комментарий к визиту"
+        commercial:
+          type: string
+          description: "Рекламный источник"
+        record_id:
+          type: string
+          description: "Идентификатор занятия; при передаче остальные параметры не нужны"
+    PaymentAccount:
+      type: object
+      description: "Возможная оплата лицевым/бонусным счётом."
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        type:
+          type: string
+          description: "Тип счёта: `deposit` — лицевой, `bonus` — бонусный"
+        payment_amount:
+          type: number
+    BookVisitResult:
+      type: object
+      description: "Результат записи. `status` — открытая строка: `Reserved`, `TemporarilyReservedNeedPayment` (визит отменят через 5 минут без оплаты), `ReservedAndPayed`."
+      required:
+        - Result
+      properties:
+        Result:
+          type: boolean
+        record_id:
+          type: string
+        status:
+          type: string
+        sum:
+          type: number
+          description: "Сумма визита; возвращается при статусе `TemporarilyReservedNeedPayment`"
+        may_be_payment:
+          type: array
+          items:
+            $ref: '#/components/schemas/PaymentAccount'
+          description: "Возможные оплаты; возвращается при статусе `TemporarilyReservedNeedPayment`"
+    BookVisitResponse:
+      type: object
+      description: "PascalCase-конверт; `Errors` в примере `null` — optional покрывает это."
+      properties:
+        Parameters:
+          $ref: '#/components/schemas/BookVisitResult'
+        Errors:
+          $ref: '#/components/schemas/ApiError'
+
+    ResultPayload:
+      type: object
+      description: "Полезная нагрузка «флаг успеха»."
+      required:
+        - Result
+      properties:
+        Result:
+          type: boolean
+    ResultEnvelope:
+      type: object
+      description: "PascalCase-конверт `{Parameters:{Result}, Errors}` — общий ответ мутаций (`rescheduleVisit`, `cancelVisit`, далее по группам)."
+      properties:
+        Parameters:
+          $ref: '#/components/schemas/ResultPayload'
+        Errors:
+          $ref: '#/components/schemas/ApiError'
+
+    PackageValidity:
+      type: object
+      description: "Ограничение срока действия пакета услуг; набор полей зависит от `limitation_type` — все optional."
+      properties:
+        limitation_type:
+          type: string
+          description: "Тип ограничения: `validity_limitation` — периодом действия, `period_limitation` — по периоду"
+        validity_type:
+          type: string
+          description: "Тип периода: `day` | `month`; при `validity_limitation`"
+        count:
+          type: integer
+          description: "Количество периодов; при `validity_limitation`"
+        start_date:
+          type: string
+          description: "Начало действия пакета; при `period_limitation`"
+        end_date:
+          type: string
+          description: "Конец действия пакета; при `period_limitation`"
+        validity_description:
+          type: string
+          description: "Описание срока действия (например, «2 месяца и 3 дня»)"
+    IncludedService:
+      type: object
+      description: "Услуга, включённая в пакет."
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        count:
+          type: integer
+    Purchase:
+      type: object
+      description: "Номенклатура корзины. `type` — открытая строка: `service` | `product` | `package`."
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        type:
+          type: string
+        validity:
+          $ref: '#/components/schemas/PackageValidity'
+        description:
+          type: string
+        services:
+          type: array
+          items:
+            $ref: '#/components/schemas/IncludedService'
+          description: "Включённые услуги; только для пакета, в примере `null`"
+        pictures:
+          type: array
+          items:
+            type: string
+    PriceType:
+      type: object
+      description: "Цена номенклатуры."
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+    CartItem:
+      type: object
+      description: "Позиция корзины расчёта. `balance`/`balance_warning` встречаются в примере, но не в таблице полей источника — сохранены optional (TD-6). `nds`: 1 — без НДС, 2 — 0%, 3 — 10%, 4 — 20%."
+      properties:
+        purchase:
+          $ref: '#/components/schemas/Purchase'
+        count:
+          type: integer
+        balance:
+          type: number
+        balance_warning:
+          type: string
+        price_type:
+          $ref: '#/components/schemas/PriceType'
+        price:
+          type: number
+        nds:
+          type: integer
+        nds_sum:
+          type: number
+        price_with_discount:
+          type: number
+        discount_sum:
+          type: number
+        payment_amount:
+          type: number
+    Promotion:
+      type: object
+      description: "Маркетинговая акция. `type` — открытая строка: `discount` | `bonus`."
+      properties:
+        type:
+          type: string
+        title:
+          type: string
+        amount:
+          type: number
+          description: "Сумма скидки"
+    RecordCostPayload:
+      type: object
+      description: "Корзина расчёта стоимости."
+      properties:
+        cart:
+          type: array
+          items:
+            $ref: '#/components/schemas/CartItem'
+        total_amount:
+          type: number
+          description: "Общая сумма к оплате"
+        total_discount:
+          type: number
+          description: "Общая сумма скидки"
+        may_be_payment:
+          type: array
+          items:
+            $ref: '#/components/schemas/PaymentAccount'
+        promotions:
+          type: array
+          items:
+            $ref: '#/components/schemas/Promotion'
+        promocode:
+          type: string
+          description: "Применённый промокод"
+    RecordCostResponse:
+      type: object
+      description: "Нижний (lowercase) диалект конверта — единственный в группе записи (TD-5)."
+      properties:
+        parameters:
+          $ref: '#/components/schemas/RecordCostPayload'
+        errors:
+          $ref: '#/components/schemas/ApiError'

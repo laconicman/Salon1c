@@ -79,4 +79,115 @@ struct EnvelopeDecodingTests {
         ).ok.body.json
         #expect(body.parameters.userToken == "9323751AAB5A5925142F352BBA7913B3")
     }
+
+    @Test("getBookableServices answers a PascalCase array, Errors absent", .tags(.specContract))
+    func bookableServicesEnvelope() async throws {
+        let client = try Client.stubbed(json: Fixture.bookableServicesResponseJSON)
+        let body = try await client.getBookableServices(path: .init(salonId: "test-salon")).ok.body.json
+        let service = try #require(body.parameters?.first)
+        #expect(service.title == "Мезотерапия")
+        #expect(service.servicesAtSameTime?.count == 2)
+        #expect(service.category?.title == "Косметология")
+        #expect(body.errors == nil)
+    }
+
+    @Test("getBookableStaff decodes nested ratings, fractional rating", .tags(.specContract))
+    func bookableStaffEnvelope() async throws {
+        let client = try Client.stubbed(json: Fixture.bookableStaffResponseJSON)
+        let body = try await client.getBookableStaff(path: .init(salonId: "test-salon")).ok.body.json
+        let staff = try #require(body.parameters?.first)
+        #expect(staff.name == "Новикова Анна")
+        #expect(staff.specialization?.title == "Косметолог")
+        #expect(staff.upcomingDates?.count == 3)
+        #expect(staff.ratings?.count == 2)
+        #expect(staff.ratings?.last?.rating == 4.5)
+        #expect(staff.commentsCount == 3)
+    }
+
+    @Test("getBookableDates answers a bare ISO string array", .tags(.specContract))
+    func bookableDatesEnvelope() async throws {
+        let client = try Client.stubbed(json: Fixture.bookableDatesResponseJSON)
+        let body = try await client.getBookableDates(
+            path: .init(salonId: "test-salon"),
+            query: .init(startDate: "20170820T0000", endDate: "20170831T0000")
+        ).ok.body.json
+        #expect(body.parameters?.count == 4)
+        #expect(body.parameters?.first == "2017-08-20T00:00:00")
+    }
+
+    @Test("getBookableTimes decodes the slot structure", .tags(.specContract))
+    func bookableTimesEnvelope() async throws {
+        let client = try Client.stubbed(json: Fixture.bookableTimesResponseJSON)
+        let body = try await client.getBookableTimes(path: .init(salonId: "test-salon")).ok.body.json
+        let slot = try #require(body.parameters?.first)
+        #expect(slot.time == "09:00")
+        #expect(slot.seanceLength == 30)
+        #expect(slot.datetime == "2017-08-24T09:00:00")
+    }
+
+    @Test("getRecordingDates keeps the dd.mm.yyyy date dialect as strings", .tags(.specContract))
+    func recordingDatesEnvelope() async throws {
+        let client = try Client.stubbed(json: Fixture.recordingDatesResponseJSON)
+        let body = try await client.getRecordingDates(
+            path: .init(salonId: "test-salon"),
+            query: .init(startDate: "20240805T0000", endDate: "20240905T0000")
+        ).ok.body.json
+        let item = try #require(body.parameters?.first)
+        #expect(item.id == "ef0fd170-3c83-465d-836b-51d72d208831")
+        #expect(item.date?.first == "06.08.2024 11:00:00")
+    }
+
+    @Test("bookVisit decodes the fuller result; Errors decodes as null", .tags(.specContract))
+    func bookVisitEnvelope() async throws {
+        let client = try Client.stubbed(json: Fixture.bookVisitResponseJSON)
+        let body = try await client.bookVisit(
+            path: .init(salonId: "test-salon"),
+            body: .json(.init(recordArray: [
+                .init(datetime: "20240831T1500", serviceId: "9ca0fa6c-48ee-11ea-96bc-38d547b31ac0")
+            ]))
+        ).ok.body.json
+        let result = try #require(body.parameters)
+        #expect(result.result == true)
+        #expect(result.status == "TemporarilyReservedNeedPayment")
+        #expect(result.sum == 2300)
+        #expect(result.mayBePayment?.first?.paymentAmount == 1300)
+    }
+
+    @Test("rescheduleVisit and cancelVisit share the Result envelope, Errors null", .tags(.specContract))
+    func resultEnvelopeShared() async throws {
+        let client = try Client.stubbed(json: Fixture.resultEnvelopeJSON)
+        let rescheduled = try await client.rescheduleVisit(
+            path: .init(salonId: "test-salon"),
+            query: .init(recordId: "d4608b12-5a07-11e9-899e-2c4d546557dd", datetime: "20170820T1030")
+        ).ok.body.json
+        #expect(rescheduled.parameters?.result == true)
+        #expect(rescheduled.errors == nil)
+
+        let cancelled = try await client.cancelVisit(
+            path: .init(salonId: "test-salon"),
+            query: .init(recordId: "d4608b12-5a07-11e9-899e-2c4d546557dd")
+        ).ok.body.json
+        #expect(cancelled.parameters?.result == true)
+    }
+
+    @Test("getRecordCost answers the lowercase envelope with the cart payload", .tags(.specContract))
+    func recordCostLowercaseEnvelope() async throws {
+        let client = try Client.stubbed(json: Fixture.recordCostResponseJSON)
+        let body = try await client.getRecordCost(
+            path: .init(salonId: "test-salon"),
+            query: .init(recordArray: [
+                .init(datetime: "20240831T1500", serviceId: "9ca0fa6c-48ee-11ea-96bc-38d547b31ac0", staffId: "663290db-105c-41cc-97d4-ed5151065813")
+            ], promocode: "Test")
+        ).ok.body.json
+        let payload = try #require(body.parameters)
+        let position = try #require(payload.cart?.first)
+        #expect(position.purchase?._type == "service")
+        #expect(position.priceWithDiscount == 50)
+        #expect(position.nds == 1)
+        #expect(payload.totalAmount == 50)
+        #expect(payload.mayBePayment?.first?._type == "deposit")
+        #expect(payload.promotions?.first?.title == "50% промокод Test")
+        #expect(payload.promocode == "Test")
+        #expect(body.errors?.code == 0)
+    }
 }
