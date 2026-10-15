@@ -190,4 +190,52 @@ struct EnvelopeDecodingTests {
         #expect(payload.promocode == "Test")
         #expect(body.errors?.code == 0)
     }
+
+    @Test("getVisits decodes the shared visit structure with status", .tags(.specContract))
+    func visitsEnvelope() async throws {
+        let client = try Client.stubbed(json: Fixture.visitsResponseJSON)
+        let body = try await client.getVisits(path: .init(salonId: "test-salon")).ok.body.json
+        let visit = try #require(body.parameters?.first)
+        #expect(visit.status == "Finished")
+        #expect(visit.actualStartDate == "2019-10-15T14:00:00")
+        let service = try #require(visit.services?.first)
+        #expect(service.service?.title == "Воздушно-вихревой массаж")
+        #expect(service.staff?.title == "Ипритова Инга Юрьевна")
+        #expect(visit.client?.phones?.first == "+7 (999) 8452010")
+    }
+
+    @Test("getFinishedVisits shares the visit structure", .tags(.specContract))
+    func finishedVisitsEnvelope() async throws {
+        let client = try Client.stubbed(json: Fixture.visitsResponseJSON)
+        let body = try await client.getFinishedVisits(path: .init(salonId: "test-salon")).ok.body.json
+        #expect(body.parameters?.first?.id == "2aa25425-e4f9-11e9-89ab-2c4d546557dd")
+    }
+
+    @Test("getDebtVisits decodes the PascalCase payload", .tags(.specContract))
+    func debtVisitsEnvelope() async throws {
+        let client = try Client.stubbed(json: Fixture.debtVisitsResponseJSON)
+        let body = try await client.getDebtVisits(path: .init(salonId: "test-salon")).ok.body.json
+        let visit = try #require(body.parameters?.first)
+        #expect(visit.id == "e162eaea-ad88-11e7-8672-2c4d546557dd")
+        #expect(visit.customer?.name == "Одношевич Евгений")
+        #expect(visit.organization?.taxationSystem == "Общая система налогообложения")
+        let service = try #require(visit.services?.first)
+        #expect(service.name == "Стрижка мужская")
+        #expect(service.sum == 500)
+        #expect(visit.fiscalCheck == nil)
+    }
+
+    @Test("payVisit answers the shared Result envelope", .tags(.specContract))
+    func payVisitEnvelope() async throws {
+        let client = try Client.stubbed(json: Fixture.resultEnvelopeJSON)
+        let body = try await client.payVisit(
+            path: .init(salonId: "test-salon"),
+            body: .json(.init(
+                recordId: "2dc57d45-d41f-11e7-893b-2c4d546557dd",
+                paymentList: [.init(_type: "card", amount: 1000), .init(_type: "deposit", amount: 1000, id: "ea18da46-98cf-11e9-89a3-2c4d546557dd")],
+                transactionId: "2134"
+            ))
+        ).ok.body.json
+        #expect(body.parameters?.result == true)
+    }
 }
