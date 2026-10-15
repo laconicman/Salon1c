@@ -437,4 +437,138 @@ struct EnvelopeDecodingTests {
         #expect(body.pagination?.itemsCount == 22)
         #expect(body.pagination?.pageSize == 10)
     }
+
+    // MARK: - Онлайн-магазин (shop)
+
+    @Test("getPriceList decodes errors nested inside parameters, price as string", .tags(.specContract))
+    func priceListEnvelope() async throws {
+        let client = try Client.stubbed(json: Fixture.priceListResponseJSON)
+        let body = try await client.getPriceList(path: .init(salonId: "test-salon")).ok.body.json
+        let parameters = try #require(body.parameters)
+        let item = try #require(parameters.priceClient?.first)
+        #expect(item.id == "367a2fcd-05be-11e8-b770-0050568b5c8d")
+        #expect(item.price == "500")
+        #expect(item.balance == 7)
+        #expect(parameters.navigation?.totalCount == 2)
+        #expect(parameters.errors?.code == 0)
+    }
+
+    @Test("getCartCost decodes cart positions, payment types, nullable blocks", .tags(.specContract))
+    func cartCostEnvelope() async throws {
+        let client = try Client.stubbed(json: Fixture.cartCostResponseJSON)
+        let body = try await client.getCartCost(
+            path: .init(salonId: "test-salon"),
+            query: .init(cart: [.init(purchaseId: "c85e4472-cc8f-11e8-8973-2c4d546557dd")])
+        ).ok.body.json
+        let parameters = try #require(body.parameters)
+        let position = try #require(parameters.cart?.first)
+        #expect(position.purchase?.title == "Крем для рук")
+        #expect(position.purchase?._type == "product")
+        #expect(position.paymentAmount == 1805)
+        #expect(parameters.totalAmount == 950)
+        #expect(parameters.mayBePayment?.first?._type == "bonus")
+        #expect(parameters.paymentTypes?.first?.title == "Наличными")
+        #expect(parameters.promocode == "SX786TZ8L6")
+        #expect(parameters.giftTo == nil)
+        #expect(parameters.delivery == nil)
+        #expect(parameters.userToken == nil)
+    }
+
+    @Test("payOrder decodes lowercase result", .tags(.specContract))
+    func payOrderLowercaseResult() async throws {
+        let client = try Client.stubbed(json: Fixture.lowercaseResultEnvelopeJSON)
+        let body = try await client.payOrder(
+            path: .init(salonId: "test-salon"),
+            body: .json(.init(
+                transactionId: "1211",
+                cart: [.init(purchaseId: "a62afb1e-97b2-11e7-b142-0050568b93ed", count: 1)],
+                paymentList: [.init(_type: "cash", amount: 11000)]
+            ))
+        ).ok.body.json
+        #expect(body.parameters?.result == true)
+    }
+
+    @Test("getProductGroups decodes recursive included_groups", .tags(.specContract))
+    func productGroupsRecursive() async throws {
+        let client = try Client.stubbed(json: Fixture.productGroupsResponseJSON)
+        let body = try await client.getProductGroups(path: .init(salonId: "test-salon")).ok.body.json
+        #expect(body.parameters?.count == 2)
+        #expect(body.parameters?.first?.includedGroups == nil)
+        let nested = try #require(body.parameters?.last?.includedGroups?.first)
+        #expect(nested.title == "Крема для рук")
+        #expect(nested.includedGroups == nil)
+    }
+
+    @Test("getStoreContacts decodes contact entries and schedule", .tags(.specContract))
+    func storeContactsEnvelope() async throws {
+        let client = try Client.stubbed(json: Fixture.storeContactsResponseJSON)
+        let body = try await client.getStoreContacts(path: .init(salonId: "test-salon")).ok.body.json
+        #expect(body.parameters?.name == "Салон красоты SpaExtreme")
+        #expect(body.parameters?.contactInformation?.count == 2)
+        #expect(body.parameters?.contactInformation?.last?._type == "Сайт")
+        #expect(body.parameters?.workSchedule?.hasPrefix("Пн: 09:30") == true)
+    }
+
+    @Test("getPublicOffer returns the html body case", .tags(.specContract))
+    func publicOfferHTMLBody() async throws {
+        let client = try Client.stubbed(json: "<html><body>Оферта</body></html>", contentType: "text/html")
+        let output = try await client.getPublicOffer(path: .init(salonId: "test-salon"))
+        let html = try await output.ok.body.html
+        let text = try await String(collecting: html, upTo: 1024 * 64)
+        #expect(text.contains("Оферта"))
+    }
+
+    @Test("getOrders decodes orders with navigation", .tags(.specContract))
+    func orderListEnvelope() async throws {
+        let client = try Client.stubbed(json: Fixture.orderListResponseJSON)
+        let body = try await client.getOrders(path: .init(salonId: "test-salon")).ok.body.json
+        let order = try #require(body.parameters?.orderList?.first)
+        #expect(order.number == "00000000002")
+        #expect(order.status == "Открыт")
+        #expect(order.shipmentDate == nil)
+        #expect(order.purchaseList?.first?.unit == "мл")
+        #expect(order.orderWithDiscount == 4050)
+        #expect(body.parameters?.navigation?.pageCount == 20)
+    }
+
+    @Test("getOrderStatuses decodes the status array", .tags(.specContract))
+    func orderStatusesEnvelope() async throws {
+        let client = try Client.stubbed(json: Fixture.orderStatusesResponseJSON)
+        let body = try await client.getOrderStatuses(path: .init(salonId: "test-salon")).ok.body.json
+        #expect(body.parameters?.map(\.title) == ["В работе", "Открыт"])
+    }
+
+    @Test("getDepositMovements decodes movements with negative costs", .tags(.specContract))
+    func depositDetailEnvelope() async throws {
+        let client = try Client.stubbed(json: Fixture.depositDetailResponseJSON)
+        let body = try await client.getDepositMovements(
+            path: .init(salonId: "test-salon"),
+            query: .init(depositId: "ea18da46-98cf-11e9-89a3-2c4d546557dd")
+        ).ok.body.json
+        let movements = try #require(body.parameters?.depositDetail)
+        #expect(movements.count == 2)
+        #expect(movements.first?.operation == "Взнос")
+        #expect(movements.last?.cost == -15)
+        #expect(body.parameters?.navigation?.totalCount == 44)
+    }
+
+    @Test("getDeliveryOptions decodes pickup with null id", .tags(.specContract))
+    func deliveryListEnvelope() async throws {
+        let client = try Client.stubbed(json: Fixture.deliveryListResponseJSON)
+        let body = try await client.getDeliveryOptions(path: .init(salonId: "test-salon")).ok.body.json
+        #expect(body.parameters?.count == 2)
+        #expect(body.parameters?.first?.id == nil)
+        #expect(body.parameters?.first?.code == "pickup")
+        #expect(body.parameters?.first?.checked == true)
+        #expect(body.parameters?.last?.code == "courier")
+    }
+
+    @Test("getProductFilters decodes filters with values", .tags(.specContract))
+    func filterListEnvelope() async throws {
+        let client = try Client.stubbed(json: Fixture.filterListResponseJSON)
+        let body = try await client.getProductFilters(path: .init(salonId: "test-salon")).ok.body.json
+        let filter = try #require(body.parameters?.first)
+        #expect(filter.id == "price")
+        #expect(filter.values?.map(\.id) == ["from", "to"])
+    }
 }

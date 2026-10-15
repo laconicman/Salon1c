@@ -1051,6 +1051,376 @@ paths:
               schema:
                 $ref: '#/components/schemas/CommentsResponse'
 
+  /hs/api/v1/price_list/{salon_id}/:
+    get:
+      operationId: "getPriceList"
+      tags: [shop]
+      summary: "Получение прайс-листа"
+      description: |
+        Прайс-лист номенклатуры; `product_id` и `filters` — JSON-строки в query,
+        `page_count`/`page_number` объявлены строками (TD-6). Ответ — нижний
+        диалект конверта с уникальной вложенностью: `errors` внутри `parameters`,
+        рядом с `navigation` (TD-5). Цена приходит строкой `"1000"` (TD-6).
+        Источник: `salon1c.apib` → Group Онлайн-магазин → price_list.
+      security:
+        - ApiKeyAuth: []
+          UserTokenAuth: []
+      parameters:
+        - $ref: '#/components/parameters/SalonId'
+        - name: type
+          in: query
+          required: false
+          description: "Тип номенклатуры: `product` | `package` | `gift_certificate`"
+          schema: {type: string}
+        - name: product_id
+          in: query
+          required: false
+          description: "Строка JSON с массивом идентификаторов номенклатуры; пример `[\"9ad49672-…\", \"8bac3895-…\"]`"
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {type: string}
+        - name: group_id
+          in: query
+          required: false
+          schema: {type: string}
+        - name: page_count
+          in: query
+          required: false
+          description: "Единиц номенклатуры на странице — объявлено строкой (TD-6)"
+          schema: {type: string}
+        - name: page_number
+          in: query
+          required: false
+          description: "Номер стартовой страницы — объявлен строкой (TD-6)"
+          schema: {type: string}
+        - name: search_line
+          in: query
+          required: false
+          description: "Строка поиска, минимум 3 символа"
+          schema: {type: string}
+        - name: without_remainder
+          in: query
+          required: false
+          description: "Истина — товары без учёта остатка; по умолчанию Ложь"
+          schema: {type: boolean}
+        - name: with_group
+          in: query
+          required: false
+          description: "Истина — вернуть и разделы товаров (`group_list` в ответе); по умолчанию Ложь"
+          schema: {type: boolean}
+        - name: filters
+          in: query
+          required: false
+          description: "Строка JSON с массивом фильтров; состав элементов источником не показан — открытые объекты (TD-6)"
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {}
+        - name: code
+          in: query
+          required: false
+          description: "Код искомой номенклатуры"
+          schema: {type: string}
+      responses:
+        '200':
+          description: "Прайс-лист с навигацией; `errors` внутри `parameters`"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PriceListResponse'
+
+  /hs/api/v1/cart_cost/{salon_id}/:
+    get:
+      operationId: "getCartCost"
+      tags: [shop]
+      summary: "Стоимость корзины с покупками"
+      description: |
+        Расчёт корзины; `cart`, `delivery`, `cart_pay`, `client` — JSON-строки
+        в query (`cart` обязателен). Без `usertoken` сервер возвращает поле
+        `user_token` — механизм выдачи токена внутри ответа (TD-6); клиентские
+        данные тогда передаются параметром `client`. Нижний диалект конверта.
+        Источник: `salon1c.apib` → Group Онлайн-магазин → cart_cost.
+      parameters:
+        - $ref: '#/components/parameters/SalonId'
+        - name: cart
+          in: query
+          required: true
+          description: "Строка JSON с массивом покупок `{purchase_id, count, staff_id?}`; пример `[{\"purchase_id\":\"…\",\"count\":2}]`"
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CartQueryItem'
+        - name: delivery
+          in: query
+          required: false
+          description: "Строка JSON с объектом доставки `{id, price, options}`"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeliveryQuery'
+        - name: cart_pay
+          in: query
+          required: false
+          description: "Строка JSON с массивом предварительных оплат `{type, amount, id?}`"
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PaymentItem'
+        - name: client
+          in: query
+          required: false
+          description: "Строка JSON с данными клиента; обязателен без `usertoken`"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CartClientQuery'
+        - name: promocode
+          in: query
+          required: false
+          schema: {type: string}
+      responses:
+        '200':
+          description: "Корзина с итогами; без `usertoken` несёт `user_token`"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CartCostResponse'
+
+  /hs/api/v1/payment/{salon_id}:
+    post:
+      operationId: "payOrder"
+      tags: [shop]
+      summary: "Оплатить покупки"
+      description: |
+        Создаёт документ заказа покупателя и документы оплаты. Ответ — нижний
+        диалект конверта и нижний `result` внутри `parameters` (TD-5).
+        Путь без завершающего `/`.
+        Источник: `salon1c.apib` → Group Онлайн-магазин → payment.
+      security:
+        - ApiKeyAuth: []
+          UserTokenAuth: []
+      parameters:
+        - $ref: '#/components/parameters/SalonId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderPaymentRequest'
+      responses:
+        '200':
+          description: "Флаг успешности оплаты"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LowercaseResultEnvelope'
+
+  /hs/api/v1/group_list/{salon_id}:
+    get:
+      operationId: "getProductGroups"
+      tags: [shop]
+      summary: "Разделы товаров иерархически"
+      description: |
+        Массив разделов товаров в иерархическом виде — `included_groups`
+        рекурсивны. Нижний диалект конверта. Путь без завершающего `/`.
+        Источник: `salon1c.apib` → Group Онлайн-магазин → group_list.
+      parameters:
+        - $ref: '#/components/parameters/SalonId'
+      responses:
+        '200':
+          description: "Массив разделов"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductGroupsResponse'
+
+  /hs/api/v1/contact_information/{salon_id}:
+    get:
+      operationId: "getStoreContacts"
+      tags: [shop]
+      summary: "Контактная информация магазина"
+      description: |
+        Контакты интернет-магазина: виды контактов, график, картинки.
+        Нижний диалект конверта. Путь без завершающего `/`.
+        Источник: `salon1c.apib` → Group Онлайн-магазин → contact_information.
+      parameters:
+        - $ref: '#/components/parameters/SalonId'
+      responses:
+        '200':
+          description: "Структура контактов"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StoreContactsResponse'
+
+  /hs/api/v1/public_offer/{salon_id}:
+    get:
+      operationId: "getPublicOffer"
+      tags: [shop]
+      summary: "Публичная оферта"
+      description: |
+        HTML-код формы публичной оферты — единственная операция с ответом
+        не-JSON (`text/html`); пример источника `{}` — заглушка, полезная
+        нагрузка — HTML-строка (TD-6). Путь без завершающего `/`.
+        Источник: `salon1c.apib` → Group Онлайн-магазин → public_offer.
+      parameters:
+        - $ref: '#/components/parameters/SalonId'
+      responses:
+        '200':
+          description: "HTML публичной оферты"
+          content:
+            text/html:
+              schema:
+                type: string
+
+  /hs/api/v1/order_list/{salon_id}/:
+    get:
+      operationId: "getOrders"
+      tags: [shop]
+      summary: "История заказов"
+      description: |
+        Заказы клиента с `navigation`-пагинацией — третья форма пагинации
+        документа (TD-5). `page_count`/`page_number` объявлены строками (TD-6).
+        Источник: `salon1c.apib` → Group Онлайн-магазин → order_list.
+      security:
+        - ApiKeyAuth: []
+          UserTokenAuth: []
+      parameters:
+        - $ref: '#/components/parameters/SalonId'
+        - $ref: '#/components/parameters/StartDateOptional'
+        - $ref: '#/components/parameters/EndDateOptional'
+        - name: page_count
+          in: query
+          required: false
+          description: "Количество заказов на странице — объявлено строкой (TD-6)"
+          schema: {type: string}
+        - name: page_number
+          in: query
+          required: false
+          description: "Номер стартовой страницы — объявлен строкой (TD-6)"
+          schema: {type: string}
+        - name: status
+          in: query
+          required: false
+          description: "УИД статуса заказа"
+          schema: {type: string}
+        - name: order_number
+          in: query
+          required: false
+          description: "Номер заказа"
+          schema: {type: string}
+        - name: order_id
+          in: query
+          required: false
+          description: "УИД заказа"
+          schema: {type: string}
+      responses:
+        '200':
+          description: "Заказы с навигацией"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderListResponse'
+
+  /hs/api/v1/order_status_list/{salon_id}:
+    get:
+      operationId: "getOrderStatuses"
+      tags: [shop]
+      summary: "Статусы заказов покупателей"
+      description: |
+        Массив возможных статусов заказов. Нижний диалект конверта.
+        Путь без завершающего `/`.
+        Источник: `salon1c.apib` → Group Онлайн-магазин → order_status_list.
+      parameters:
+        - $ref: '#/components/parameters/SalonId'
+      responses:
+        '200':
+          description: "Массив статусов"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderStatusesResponse'
+
+  /hs/api/v1/deposit_detail/{salon_id}/:
+    get:
+      operationId: "getDepositMovements"
+      tags: [shop]
+      summary: "Расшифровка движений по счёту"
+      description: |
+        Движения средств по лицевому/бонусному счёту `deposit_id` с
+        `navigation`-пагинацией; `usertoken` в заголовках примера не показан —
+        не навязан (TD-6). Даты операций — `yyyy-mm-dd HH:MM`, пятый диалект
+        дат (TD-7). `page_count`/`page_number` — строками (TD-6).
+        Источник: `salon1c.apib` → Group Онлайн-магазин → deposit_detail.
+      parameters:
+        - $ref: '#/components/parameters/SalonId'
+        - name: deposit_id
+          in: query
+          required: true
+          description: "ID лицевого или бонусного счёта"
+          schema: {type: string}
+        - name: page_count
+          in: query
+          required: false
+          schema: {type: string}
+        - name: page_number
+          in: query
+          required: false
+          schema: {type: string}
+      responses:
+        '200':
+          description: "Движения по счёту с навигацией"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DepositDetailResponse'
+
+  /hs/api/v1/delivery_list/{salon_id}:
+    get:
+      operationId: "getDeliveryOptions"
+      tags: [shop]
+      summary: "Услуги по доставке"
+      description: |
+        Доступные услуги доставки; `id` бывает `null` (самовывоз),
+        `code` — `pickup` | `courier`. Нижний диалект конверта.
+        Путь без завершающего `/`.
+        Источник: `salon1c.apib` → Group Онлайн-магазин → delivery_list.
+      parameters:
+        - $ref: '#/components/parameters/SalonId'
+      responses:
+        '200':
+          description: "Массив услуг доставки"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeliveryListResponse'
+
+  /hs/api/v1/filter_list/{salon_id}:
+    get:
+      operationId: "getProductFilters"
+      tags: [shop]
+      summary: "Фильтры по товарам"
+      description: |
+        Доступные фильтры номенклатуры (`price`, `tags`, …) со значениями.
+        Нижний диалект конверта. Путь без завершающего `/`.
+        Источник: `salon1c.apib` → Group Онлайн-магазин → filter_list.
+      parameters:
+        - $ref: '#/components/parameters/SalonId'
+      responses:
+        '200':
+          description: "Массив фильтров"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FilterListResponse'
+
 components:
   securitySchemes:
     ApiKeyAuth:
@@ -2878,4 +3248,480 @@ components:
         Pagination:
           $ref: '#/components/schemas/Pagination'
         Errors:
+          $ref: '#/components/schemas/ApiError'
+
+    # --- Group Онлайн-магазин -------------------------------------------------
+
+    Navigation:
+      type: object
+      description: "Навигация магазинных выборок — третья форма пагинации документа (TD-5): `current_page`/`total_page`/`contains_count`/`total_count` плюс эхо переданных `page_number`/`page_count`."
+      properties:
+        current_page:
+          type: integer
+        total_page:
+          type: integer
+        contains_count:
+          type: integer
+        total_count:
+          type: integer
+        page_number:
+          type: integer
+        page_count:
+          type: integer
+
+    AdditionalDetail:
+      type: object
+      description: "Дополнительный реквизит номенклатуры."
+      properties:
+        title:
+          type: string
+        value:
+          type: string
+    PriceItem:
+      type: object
+      description: "Позиция прайс-листа. `price` — строкой (`\"1000\"`), `description`/`services`/`validity`/`available_time`/`balance`/`country_origin` бывают `null`. `type` — `product` | `package` | `gift_certificate`, открытая строка."
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        type:
+          type: string
+        category:
+          $ref: '#/components/schemas/ServiceCategory'
+        price:
+          type: string
+          description: "Цена строкой — так в примере источника (TD-6)"
+        description:
+          type: string
+        services:
+          type: array
+          items:
+            $ref: '#/components/schemas/IncludedService'
+          description: "Включённые услуги пакета; `null` иначе"
+        validity:
+          $ref: '#/components/schemas/PackageValidity'
+        available_time:
+          type: string
+        balance:
+          type: number
+          description: "Остаток; `null` для неучитываемых (пакеты)"
+        pictures:
+          type: array
+          items:
+            type: string
+        country_origin:
+          type: string
+        article:
+          type: string
+        unit:
+          type: string
+        additional_details:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdditionalDetail'
+    ProductGroup:
+      type: object
+      description: "Раздел товаров; `included_groups` — рекурсивные подчинённые разделы, `null` на листьях."
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        included_groups:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProductGroup'
+        sort_index:
+          type: integer
+    PriceListParameters:
+      type: object
+      description: "Полезная нагрузка прайс-листа; `errors` вложен сюда же, а не в конверт — уникальная вложенность (TD-5). `group_list` только при `with_group`."
+      properties:
+        price_client:
+          type: array
+          items:
+            $ref: '#/components/schemas/PriceItem'
+        navigation:
+          $ref: '#/components/schemas/Navigation'
+        errors:
+          $ref: '#/components/schemas/ApiError'
+        group_list:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProductGroup'
+    PriceListResponse:
+      type: object
+      description: "Нижний диалект; внешнего `errors` нет — он внутри `parameters`."
+      properties:
+        parameters:
+          $ref: '#/components/schemas/PriceListParameters'
+
+    CartQueryItem:
+      type: object
+      description: "Покупка корзины — Data Structure `cart` источника. `staff_id` — для терминалов самообслуживания."
+      required:
+        - purchase_id
+      properties:
+        purchase_id:
+          type: string
+        count:
+          type: number
+        staff_id:
+          type: string
+    DeliveryQuery:
+      type: object
+      description: "Услуга доставки в запросе — Data Structure `delivery` источника. `options` обязателен но бывает `null` — объект данных ЯД."
+      required:
+        - id
+        - price
+        - options
+      properties:
+        id:
+          type: string
+        price:
+          type: number
+        options: {}
+    CartClientQuery:
+      type: object
+      description: "Данные клиента строкой JSON — Data Structure `client` источника; обязателен без `usertoken` (тогда `phone`/`last_name`/`name` необходимы)."
+      properties:
+        phone:
+          type: string
+        last_name:
+          type: string
+        name:
+          type: string
+        second_name:
+          type: string
+        birthday:
+          type: string
+          description: "Формат `31.12.1990`"
+    GiftRecipient:
+      type: object
+      description: "Получатель подарочного сертификата — Data Structure `GiftTo`."
+      required:
+        - phone
+      properties:
+        phone:
+          type: string
+        name:
+          type: string
+        email:
+          type: string
+    DeliveryItem:
+      type: object
+      description: "Услуга доставки в ответе; `id` — `null` у самовывоза, `code` — `pickup` | `courier`."
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        price:
+          type: number
+        code:
+          type: string
+        checked:
+          type: boolean
+    PaymentTypeRef:
+      type: object
+      description: "Доступный тип оплаты."
+      properties:
+        type:
+          type: string
+        title:
+          type: string
+    CartCostPayload:
+      type: object
+      description: "Расчёт корзины. `gift_to`/`delivery`/`promocode`/`user_token` бывают `null`; `user_token` возвращается, если `usertoken` не передан в заголовках — выдача токена внутри ответа (TD-6)."
+      properties:
+        cart:
+          type: array
+          items:
+            $ref: '#/components/schemas/CartItem'
+        total_amount:
+          type: number
+        total_discount:
+          type: number
+        may_be_payment:
+          type: array
+          items:
+            $ref: '#/components/schemas/PaymentAccount'
+        promotions:
+          type: array
+          items:
+            $ref: '#/components/schemas/Promotion'
+        gift_to:
+          $ref: '#/components/schemas/GiftRecipient'
+        delivery:
+          $ref: '#/components/schemas/DeliveryItem'
+        user_token:
+          type: string
+        promocode:
+          type: string
+        payment_types:
+          type: array
+          items:
+            $ref: '#/components/schemas/PaymentTypeRef'
+    CartCostResponse:
+      type: object
+      description: "Нижний диалект конверта."
+      properties:
+        parameters:
+          $ref: '#/components/schemas/CartCostPayload'
+        errors:
+          $ref: '#/components/schemas/ApiError'
+
+    OrderPaymentRequest:
+      type: object
+      description: "Тело оплаты заказа. `transaction_id` объявлен string, пример шлёт число `1211` — держим объявленный тип (TD-6)."
+      required:
+        - transaction_id
+        - cart
+        - payment_list
+      properties:
+        transaction_id:
+          type: string
+        cart:
+          type: array
+          items:
+            $ref: '#/components/schemas/CartQueryItem'
+        payment_list:
+          type: array
+          items:
+            $ref: '#/components/schemas/PaymentItem'
+        gift_to:
+          $ref: '#/components/schemas/GiftRecipient'
+        comment:
+          type: string
+        address:
+          type: string
+        delivery:
+          $ref: '#/components/schemas/DeliveryQuery'
+        promocode:
+          type: string
+    LowercaseResultPayload:
+      type: object
+      description: "Флаг успеха нижним регистром — `result`, не `Result` (TD-5)."
+      required:
+        - result
+      properties:
+        result:
+          type: boolean
+    LowercaseResultEnvelope:
+      type: object
+      description: "Нижний диалект конверта с нижним `result`."
+      properties:
+        parameters:
+          $ref: '#/components/schemas/LowercaseResultPayload'
+        errors:
+          $ref: '#/components/schemas/ApiError'
+
+    ProductGroupsResponse:
+      type: object
+      description: "Нижний диалект конверта."
+      properties:
+        parameters:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProductGroup'
+        errors:
+          $ref: '#/components/schemas/ApiError'
+
+    StoreContactEntry:
+      type: object
+      description: "Вид контакта магазина: `Телефон`, `Email`, `Фактический адрес`, `Короткий адрес`, `Сайт` — открытые строки."
+      properties:
+        type:
+          type: string
+        title:
+          type: string
+    StoreContacts:
+      type: object
+      description: "Контакты интернет-магазина."
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        contact_information:
+          type: array
+          items:
+            $ref: '#/components/schemas/StoreContactEntry'
+        work_schedule:
+          type: string
+        pictures:
+          type: array
+          items:
+            type: string
+    StoreContactsResponse:
+      type: object
+      description: "Нижний диалект конверта."
+      properties:
+        parameters:
+          $ref: '#/components/schemas/StoreContacts'
+        errors:
+          $ref: '#/components/schemas/ApiError'
+
+    OrderPurchase:
+      type: object
+      description: "Позиция заказа. `type` — `service` | `product` | `package` | `gift_certificate`, открытая строка."
+      properties:
+        title:
+          type: string
+        type:
+          type: string
+        unit:
+          type: string
+        count:
+          type: number
+        price:
+          type: number
+        price_with_discount:
+          type: number
+        discount_sum:
+          type: number
+        payment_sum:
+          type: number
+        pictures:
+          type: array
+          items:
+            type: string
+    Order:
+      type: object
+      description: "Заказ покупателя. `status` — представление (`Открыт`), `status_id` — УИД; `shipment_date` бывает `null`."
+      properties:
+        id:
+          type: string
+        number:
+          type: string
+        shipment_date:
+          type: string
+        date:
+          type: string
+        status:
+          type: string
+        status_id:
+          type: string
+        comment:
+          type: string
+        purchase_list:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderPurchase'
+        order_price:
+          type: number
+        order_discount:
+          type: number
+        order_with_discount:
+          type: number
+    OrderListPayload:
+      type: object
+      description: "Полезная нагрузка истории заказов."
+      properties:
+        order_list:
+          type: array
+          items:
+            $ref: '#/components/schemas/Order'
+        navigation:
+          $ref: '#/components/schemas/Navigation'
+    OrderListResponse:
+      type: object
+      description: "Нижний диалект конверта."
+      properties:
+        parameters:
+          $ref: '#/components/schemas/OrderListPayload'
+        errors:
+          $ref: '#/components/schemas/ApiError'
+
+    OrderStatus:
+      type: object
+      description: "Возможный статус заказа."
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+    OrderStatusesResponse:
+      type: object
+      description: "Нижний диалект конверта."
+      properties:
+        parameters:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderStatus'
+        errors:
+          $ref: '#/components/schemas/ApiError'
+
+    DepositMovement:
+      type: object
+      description: "Движение по счёту; `date` — `yyyy-mm-dd HH:MM` (TD-7), `operation` — представление (`Взнос`/`Списание`)."
+      properties:
+        id:
+          type: string
+        date:
+          type: string
+        operation:
+          type: string
+        cost:
+          type: number
+    DepositDetailPayload:
+      type: object
+      description: "Полезная нагрузка расшифровки."
+      properties:
+        deposit_detail:
+          type: array
+          items:
+            $ref: '#/components/schemas/DepositMovement'
+        navigation:
+          $ref: '#/components/schemas/Navigation'
+    DepositDetailResponse:
+      type: object
+      description: "Нижний диалект конверта."
+      properties:
+        parameters:
+          $ref: '#/components/schemas/DepositDetailPayload'
+        errors:
+          $ref: '#/components/schemas/ApiError'
+
+    DeliveryListResponse:
+      type: object
+      description: "Нижний диалект конверта."
+      properties:
+        parameters:
+          type: array
+          items:
+            $ref: '#/components/schemas/DeliveryItem'
+        errors:
+          $ref: '#/components/schemas/ApiError'
+
+    ProductFilterValue:
+      type: object
+      description: "Значение фильтра товаров."
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+    ProductFilter:
+      type: object
+      description: "Фильтр товаров со значениями."
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        values:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProductFilterValue'
+    FilterListResponse:
+      type: object
+      description: "Нижний диалект конверта."
+      properties:
+        parameters:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProductFilter'
+        errors:
           $ref: '#/components/schemas/ApiError'
