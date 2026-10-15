@@ -1421,13 +1421,15 @@ paths:
               schema:
                 $ref: '#/components/schemas/FilterListResponse'
 
-  /hs/api/v2/book_staff:
+  /hs/api/v2/book_staff/:
     get:
       operationId: "getTerminalStaff"
       tags: [terminal]
       summary: "Сотрудники, доступные для записи"
       description: |
-        Терминал самообслуживания: без `salon_id`, без завершающего `/`.
+        Терминал самообслуживания: без `salon_id`. Завершающий `/` обязателен —
+        в URI-шаблоне источника `/hs/api/v2/book_staff/{?datetime}` он литерален,
+        и Apiary-мок отвечает только на форму со слэшем (проверено по моку).
         Нижний диалект конверта.
         Источник: `salon1c.apib` → Group Терминал самообслуживания → book_staff.
       parameters:
@@ -1444,7 +1446,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/TerminalStaffResponse'
 
-  /hs/api/v2/book_services:
+  /hs/api/v2/book_services/:
     get:
       operationId: "getTerminalServices"
       tags: [terminal]
@@ -1465,7 +1467,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/TerminalServicesResponse'
 
-  /hs/api/v2/find_client_by_phone:
+  /hs/api/v2/find_client_by_phone/:
     get:
       operationId: "findClientByPhone"
       tags: [terminal]
@@ -1510,7 +1512,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/TerminalAuthResponse'
 
-  /hs/api/v2/cart_cost:
+  /hs/api/v2/cart_cost/:
     get:
       operationId: "getTerminalCartCost"
       tags: [terminal]
