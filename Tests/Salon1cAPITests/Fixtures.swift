@@ -114,3 +114,80 @@ extension Client {
 //   section it came from. These prove the client decodes what the document *claims*;
 //   only a live call proves the claim (TD-2). Replace each one with a wire capture as
 //   evidence arrives, and say so here.
+
+enum Fixture {
+    /// `GET /hs/api/v1/auth_types/` → 200, verbatim: Group Авторизация → auth_types.
+    static let authTypesResponseJSON = #"""
+    {
+        "parameters": [
+            {
+                "type": "sms",
+                "title": "СМС"
+            },
+            {
+                "type": "whats_app",
+                "title": "WhatsApp"
+            },
+            {
+                "type": "email",
+                "title": "Email"
+            }
+        ],
+        "errors": {
+            "code": 0,
+            "message": ""
+        }
+    }
+    """#
+
+    /// `POST /hs/api/v1/auth/` → 200, «код отправлен» variant — the hybrid
+    /// `Request_id`/`Parameters`/`Error`/`ErrorMessage` register (TD-5), verbatim.
+    static let authCodeSentResponseJSON = #"""
+    {
+        "Request_id": "580392e6-ba49-4280-ac67-fcd6f2180121",
+        "Parameters": {
+            "sent_SMS": true
+        },
+        "Error": 0,
+        "ErrorMessage": ""
+    }
+    """#
+
+    /// `POST /hs/api/v1/auth/` → 200, «UserToken выдан» variant — also the shared
+    /// response of `private_auth` and `auth_token`, verbatim.
+    static let userTokenEnvelopeResponseJSON = #"""
+    {
+        "Parameters": {
+            "UserToken": "9323751AAB5A5925142F352BBA7913B3"
+        },
+        "Errors": {
+            "code": 0,
+            "message": null
+        }
+    }
+    """#
+
+    /// `POST /hs/api/v1/validity_usertoken/` → 200 — the bare, un-enveloped shape (TD-5).
+    static let usertokenValidityResponseJSON = #"""
+    {
+        "Result": true
+    }
+    """#
+
+    /// `POST /hs/api/v1/auth_request/` → 200, verbatim: Group Авторизация → auth_request.
+    static let phoneConfirmationResponseJSON = #"""
+    {
+        "Parameters": {
+            "outgoing_id": "you_can_login_bot",
+            "link": "https://t.me/you_can_login_bot/?start=Verification",
+            "request_id": "27dd2f8e-32a4-11ee-b18f-f02f7488d897",
+            "method": "outgoing_telegram"
+        },
+        "Errors": {
+            "code": 0,
+            "message": ""
+        }
+    }
+    """#
+}
+
