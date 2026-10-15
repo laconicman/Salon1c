@@ -450,6 +450,101 @@ paths:
               schema:
                 $ref: '#/components/schemas/RecordCostResponse'
 
+  /hs/api/v1/finished_visites/{salon_id}/:
+    get:
+      operationId: "getFinishedVisits"
+      tags: [visits]
+      summary: "Оконченные визиты"
+      description: |
+        Возвращает массив оконченных визитов за период; `start_date`/`end_date`
+        здесь optional — в отличие от `getBookableDates` (TD-6). Имя пути
+        `visites` — опечатка источника, сохранена как есть.
+        Источник: `salon1c.apib` → Group Визиты → finished_visites.
+      parameters:
+        - $ref: '#/components/parameters/SalonId'
+        - $ref: '#/components/parameters/StartDateOptional'
+        - $ref: '#/components/parameters/EndDateOptional'
+      responses:
+        '200':
+          description: "Массив оконченных визитов"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VisitsResponse'
+
+  /hs/api/v1/visites/{salon_id}/:
+    get:
+      operationId: "getVisits"
+      tags: [visits]
+      summary: "Список визитов"
+      description: |
+        Возвращает массив визитов за период — та же структура, что у
+        `getFinishedVisits`, плюс поле `status` (`Archival`, `NotCame`,
+        `Expected`, `Came`, `Finished`, `Canceled` — открытая строка).
+        Проза источника ошибочно обещает «массив оконченных визитов» (TD-6);
+        `status` покрывает и неоконченные.
+        Источник: `salon1c.apib` → Group Визиты → visites.
+      parameters:
+        - $ref: '#/components/parameters/SalonId'
+        - $ref: '#/components/parameters/StartDateOptional'
+        - $ref: '#/components/parameters/EndDateOptional'
+      responses:
+        '200':
+          description: "Массив визитов"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VisitsResponse'
+
+  /hs/api/v1/debt_visits/{salon_id}:
+    get:
+      operationId: "getDebtVisits"
+      tags: [visit-payment]
+      summary: "Долговые визиты"
+      description: |
+        Возвращает массив визитов с долгами. Полезная нагрузка — в регистре
+        PascalCase и *внутри* объектов (`Id`, `Customer`, `Services`…) — четвёртая
+        регистровая разновидность документа (TD-5). Путь без завершающего `/`,
+        как в источнике.
+        Источник: `salon1c.apib` → Group Оплата визитов → debt_visits.
+      parameters:
+        - $ref: '#/components/parameters/SalonId'
+      responses:
+        '200':
+          description: "Массив долговых визитов"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DebtVisitsResponse'
+
+  /hs/api/v1/visit_payment/{salon_id}/:
+    post:
+      operationId: "payVisit"
+      tags: [visit-payment]
+      summary: "Оплатить визит"
+      description: |
+        Проверяет возможность оплаты визита и проводит её; клиент определяется
+        по `usertoken`. Успех — `Parameters.Result: true`.
+        Источник: `salon1c.apib` → Group Оплата визитов → visit_payment.
+      security:
+        - ApiKeyAuth: []
+          UserTokenAuth: []
+      parameters:
+        - $ref: '#/components/parameters/SalonId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VisitPaymentRequest'
+      responses:
+        '200':
+          description: "Результат оплаты"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultEnvelope'
+
 components:
   securitySchemes:
     ApiKeyAuth:
@@ -532,6 +627,20 @@ components:
             type: array
             items:
               $ref: '#/components/schemas/RecordItem'
+    StartDateOptional:
+      name: start_date
+      in: query
+      required: false
+      description: "Начало периода в iso8601; автоматически берётся начало дня. Optional — так объявлено у визитовых операций (TD-6)"
+      schema:
+        type: string
+    EndDateOptional:
+      name: end_date
+      in: query
+      required: false
+      description: "Конец периода в iso8601; автоматически берётся конец дня. Optional — так объявлено у визитовых операций (TD-6)"
+      schema:
+        type: string
   schemas:
     ApiError:
       type: object
@@ -1220,3 +1329,194 @@ components:
           $ref: '#/components/schemas/RecordCostPayload'
         errors:
           $ref: '#/components/schemas/ApiError'
+
+    # --- Group Визиты + Оплата визитов ----------------------------------------
+
+    VisitClient:
+      type: object
+      description: "Клиент визита."
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+          description: "ФИО клиента"
+        phones:
+          type: array
+          items:
+            type: string
+    VisitServiceItem:
+      type: object
+      description: "Услуга визита."
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        sum:
+          type: number
+    VisitStaffRef:
+      type: object
+      description: "Сотрудник визита."
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+          description: "ФИО сотрудника"
+    VisitService:
+      type: object
+      description: "Оказанная услуга в составе визита."
+      properties:
+        start_date:
+          type: string
+          description: "Плановое время начала услуги (ISO-8601 в примерах)"
+        end_date:
+          type: string
+          description: "Плановое время окончания услуги"
+        service:
+          $ref: '#/components/schemas/VisitServiceItem'
+        staff:
+          $ref: '#/components/schemas/VisitStaffRef'
+    Visit:
+      type: object
+      description: "Визит. Общая структура `finished_visites` и `visites`; `status` документирован только у `visites` — `Expected`, `Came`, `Finished`, `NotCame`, `Canceled`, `Archival`, открытая строка."
+      properties:
+        id:
+          type: string
+        status:
+          type: string
+        actual_start_date:
+          type: string
+          description: "Фактическое время начала визита"
+        actual_end_date:
+          type: string
+          description: "Фактическое время окончания визита"
+        services:
+          type: array
+          items:
+            $ref: '#/components/schemas/VisitService'
+        client:
+          $ref: '#/components/schemas/VisitClient'
+    VisitsResponse:
+      type: object
+      description: "PascalCase-конверт; `Parameters` — массив визитов."
+      properties:
+        Parameters:
+          type: array
+          items:
+            $ref: '#/components/schemas/Visit'
+        Errors:
+          $ref: '#/components/schemas/ApiError'
+
+    DebtVisitCustomer:
+      type: object
+      description: "Клиент долгового визита; регистр PascalCase внутри полезной нагрузки (TD-5)."
+      properties:
+        Name:
+          type: string
+        Phone:
+          type: string
+        Email:
+          type: string
+    DebtVisitOrganization:
+      type: object
+      description: "Организация долгового визита."
+      properties:
+        TaxationSystemCode:
+          type: string
+        TaxationSystem:
+          type: string
+    DebtVisitService:
+      type: object
+      description: "Услуга долгового визита (фискальный состав чека). `Staff` в таблице объявлен объектом, а в примере приходит строкой — схема открыта (TD-6). `Department` есть в примере, отсутствует в таблице."
+      properties:
+        Name:
+          type: string
+        Quantity:
+          type: number
+        Price:
+          type: number
+        PriceWithDiscount:
+          type: number
+        DiscountSum:
+          type: number
+        Tax:
+          type: string
+          description: "Ставка НДС; в примере `null`"
+        TaxSum:
+          type: number
+        Staff: {}
+        Specialization:
+          type: string
+        Department:
+          type: string
+        BarCode:
+          type: string
+        CalculationMethod:
+          type: string
+        CalculationObject:
+          type: string
+        Sum:
+          type: number
+    DebtVisit:
+      type: object
+      description: "Визит с долгом. `CalculationType`/`FiscalCheck` в примере `null` — optional покрывает это."
+      properties:
+        Id:
+          type: string
+        CalculationType:
+          type: string
+        FiscalCheck:
+          type: boolean
+        Customer:
+          $ref: '#/components/schemas/DebtVisitCustomer'
+        Organization:
+          $ref: '#/components/schemas/DebtVisitOrganization'
+        Services:
+          type: array
+          items:
+            $ref: '#/components/schemas/DebtVisitService'
+    DebtVisitsResponse:
+      type: object
+      description: "PascalCase-конверт с PascalCase-полезной нагрузкой (TD-5)."
+      properties:
+        Parameters:
+          type: array
+          items:
+            $ref: '#/components/schemas/DebtVisit'
+        Errors:
+          $ref: '#/components/schemas/ApiError'
+
+    PaymentItem:
+      type: object
+      description: "Структура оплаты из Data Structure `PaymentList` источника. `type` — открытая строка: `cash` | `card` | `deposit` | `bonus`."
+      required:
+        - type
+        - amount
+      properties:
+        type:
+          type: string
+        amount:
+          type: number
+        id:
+          type: string
+          description: "Лицевой/бонусный счёт; только при `deposit`/`bonus`"
+    VisitPaymentRequest:
+      type: object
+      description: "Тело оплаты визита. `transaction_id` объявлен string, пример шлёт число `2134` — модель держит объявленный тип (TD-6)."
+      required:
+        - record_id
+        - payment_list
+        - transaction_id
+      properties:
+        record_id:
+          type: string
+          description: "Идентификатор визита"
+        payment_list:
+          type: array
+          items:
+            $ref: '#/components/schemas/PaymentItem'
+        transaction_id:
+          type: string
+          description: "Идентификатор транзакции"

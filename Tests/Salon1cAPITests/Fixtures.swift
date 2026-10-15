@@ -421,5 +421,91 @@ enum Fixture {
         }
     }
     """#
+
+    /// `GET /hs/api/v1/visites/` → 200, verbatim (one visit, one service):
+    /// Group Визиты → visites. `finished_visites` answers the same structure
+    /// minus `status`.
+    static let visitsResponseJSON = #"""
+    {
+        "Parameters": [
+            {
+                "id": "2aa25425-e4f9-11e9-89ab-2c4d546557dd",
+                "status": "Finished",
+                "actual_start_date": "2019-10-15T14:00:00",
+                "actual_end_date": "2019-10-15T14:48:40",
+                "services": [
+                    {
+                        "start_date": "2019-10-02T12:00:00",
+                        "end_date": "2019-10-02T12:40:00",
+                        "service": {
+                            "id": "0c599e34-5b0d-11e7-82e7-0050568b5c8d",
+                            "title": "Воздушно-вихревой массаж"
+                        },
+                        "staff": {
+                            "id": "d7d792c2-0571-11e7-a42a-0050568b5c8d",
+                            "title": "Ипритова Инга Юрьевна"
+                        }
+                    }
+                ],
+                "client": {
+                    "id": "eac3bbca-6003-11e7-82e7-0050568b5c8d",
+                    "name": "Веселова Алина Ивановна",
+                    "phones": [
+                        "+7 (999) 8452010"
+                    ]
+                }
+            }
+        ],
+        "Errors": {
+            "code": 0,
+            "message": ""
+        }
+    }
+    """#
+
+    /// `GET /hs/api/v1/debt_visits/` → 200, verbatim: PascalCase *inside* the
+    /// payload too (TD-5). `Staff` arrives as a string where the field table
+    /// declares an object (TD-6); `Department` is example-only.
+    static let debtVisitsResponseJSON = #"""
+    {
+        "Parameters": [
+            {
+                "Id": "e162eaea-ad88-11e7-8672-2c4d546557dd",
+                "CalculationType": null,
+                "FiscalCheck": null,
+                "Customer": {
+                    "Name": "Одношевич Евгений",
+                    "Phone": "79876543210",
+                    "Email": null
+                },
+                "Organization": {
+                    "TaxationSystemCode": null,
+                    "TaxationSystem": "Общая система налогообложения"
+                },
+                "Services": [
+                    {
+                        "Name": "Стрижка мужская",
+                        "Quantity": 1,
+                        "Price": 500,
+                        "PriceWithDiscount": 500,
+                        "DiscountSum": 0,
+                        "Tax": null,
+                        "TaxSum": 0,
+                        "Staff": "Новикова Анна",
+                        "Department": null,
+                        "BarCode": null,
+                        "CalculationMethod": null,
+                        "CalculationObject": null,
+                        "Sum": 500
+                    }
+                ]
+            }
+        ],
+        "Errors": {
+            "code": 0,
+            "message": null
+        }
+    }
+    """#
 }
 
