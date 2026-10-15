@@ -37,9 +37,11 @@ Render: `swift package generate-documentation --target Salon1cAPI`
    PascalCase dialect) are enum cases; transport/decoding failures are thrown `ClientError`;
    and `errors.code ≠ 0` inside a 200 body is a domain refusal that surfaces **as data** in
    0.1 — do not silently collapse any of the three.
-7. **The two envelope dialects are per-op fidelity, never normalize.** Lowercase
-   `{parameters, errors}` vs PascalCase `{Parameters, Errors, Meta}` are different wire
-   shapes on different operation families. A "consistency" fix is a spec bug.
+7. **The six envelope dialects are per-op fidelity, never normalize.** Lowercase
+   `{parameters, errors}`, PascalCase `{Parameters, Errors, Meta}`, singular `Error`,
+   the `Request_id` hybrid, bare `{Result}`, and `errors`-inside-`parameters` are
+   different wire shapes on different operation families — the map lives in
+   `SpecOwnership`. A "consistency" fix is a spec bug.
 8. **`apikey`/`usertoken` are literal-lowercase header names.** Header behaviour lives only
    in `AuthMiddleware`; nowhere else sets headers.
 9. **Wire spellings stay.** `visites`, `finished_visites`, `salon_id`-less v2 paths — the

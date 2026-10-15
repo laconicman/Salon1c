@@ -78,12 +78,15 @@ case .undocumented(let statusCode, _):
 }
 ```
 
-### Two envelopes, both deliberate
+### Six envelope dialects, all deliberate
 
-The API wraps every reply in `{parameters, errors}` — **lowercase on most operations,
-PascalCase (`Parameters`/`Errors`/`Meta`) on the client-record family**. Both are wired
-exactly as documented; a non-zero `errors.code` is a domain refusal (catalogue 1000–1114)
-inside HTTP 200, and today it surfaces as data — an unwrap convenience is on the roadmap.
+The API wraps replies in an envelope — but **six different spellings** of it:
+lowercase `{parameters, errors}`, PascalCase `{Parameters, Errors, Meta}`, a singular
+`Error` variant, a `Request_id` hybrid, a bare `{Result}`, and `errors` nested *inside*
+`parameters` on `price_list`. All are wired exactly as documented — the dialect map is
+in [SpecOwnership](Sources/Salon1cAPI/Salon1cAPI.docc/SpecOwnership.md). A non-zero
+`errors.code` is a domain refusal (catalogue 1000–1114) inside HTTP 200, and today it
+surfaces as data — an unwrap convenience is on the roadmap.
 
 ### Two credential headers
 
