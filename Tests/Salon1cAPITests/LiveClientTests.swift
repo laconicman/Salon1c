@@ -23,7 +23,7 @@ import Testing
 struct LiveClientTests {
     private func liveClient() throws -> (client: Client, salonId: String) {
         let salon = try #require(LiveEnvironment.salon)
-        return (try Client(credentials: salon.credentials), salon.salonId)
+        return (try Client(serverURL: LiveEnvironment.serverURL, credentials: salon.credentials), salon.salonId)
     }
 
     @Test("getAuthTypes answers the lowercase envelope on a live host")
@@ -109,7 +109,7 @@ struct LiveMutatingTests {
     )
     func createClientLive() async throws {
         let salon = try #require(LiveEnvironment.salon)
-        let client = try Client(credentials: salon.credentials)
+        let client = try Client(serverURL: LiveEnvironment.serverURL, credentials: salon.credentials)
         let phoneString = try #require(LiveEnvironment.variable("SALON1C_TEST_PHONE"))
         // `ClientCreateRequest.phone` is the documented *numeric* variant (TD-6) —
         // digits only, e.g. "79001001010".
