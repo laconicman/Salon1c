@@ -58,6 +58,12 @@ enum LiveEnvironment {
         )
     }
 
+    /// `SALON1C_BASE_URL` — a test lab or on-premises deployment the live suite should
+    /// hit instead of the documented cloud host. `nil` means the spec's server.
+    static var serverURL: URL? {
+        variable("SALON1C_BASE_URL").flatMap(URL.init(string:))
+    }
+
     /// Second switch for anything that writes server state.
     static var mutatingAllowed: Bool {
         variable("SALON1C_ALLOW_MUTATING_LIVE_TESTS") == "1"
