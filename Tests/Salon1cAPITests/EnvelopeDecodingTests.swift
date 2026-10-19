@@ -287,7 +287,7 @@ struct EnvelopeDecodingTests {
             path: .init(salonId: "test-salon"),
             body: .json(.init(
                 orderByDirection: .desc,
-                filters: [.init(_type: "phone", value: [.init(unvalidatedValue: "77777777777")])]
+                filters: [.init(_type: "phone", value: .case1("77777777777"))]
             ))
         ).ok.body.json
         #expect(body.parameters.first?.surname == "Петров")
@@ -353,8 +353,10 @@ struct EnvelopeDecodingTests {
         #expect(ticket.typeActivation?._type == "at_sale")
         #expect(ticket.serviceList?.first?.title == "Услуга 3")
         #expect(ticket.availableClubs?.first?.title == "Салон 1")
-        // Vendor OpenAPI dropped `balance_frozen` from the Ticket schema — the
-        // wire may still send it; decoding ignores it. Tracked in SpecOwnership.
+        // The Ticket schema omits the frozen/guest keys its own example sends —
+        // declared optional by patch P24.
+        #expect(ticket.balanceFrozen == 0)
+        #expect(ticket.totalGuestVisit == 0)
     }
 
     @Test("getClientTicket answers a single-object Parameters", .tags(.specContract))
@@ -423,9 +425,9 @@ struct EnvelopeDecodingTests {
         let client = try Client.stubbed(json: Fixture.rateVisitResponseJSON)
         let body = try await client.rateVisit(
             path: .init(salonId: "test-salon"),
-            // `comment` is declared `number` by both the Blueprint and the vendor
-            // OpenAPI, though the Blueprint's own example sends a string (TD-6).
-            body: .json(.init(recordId: "3daa8097-ff6a-11e7-b770-0050568b5c8d", staffId: "222d3814-49f4-11e7-b491-0050568b5c8d", rating: 5, comment: 5))
+            // `comment` is declared `number` by both documents while both
+            // examples send a string — the example wins (patch P26, TD-6).
+            body: .json(.init(recordId: "3daa8097-ff6a-11e7-b770-0050568b5c8d", staffId: "222d3814-49f4-11e7-b491-0050568b5c8d", rating: 5, comment: "Отличное обслуживание"))
         ).ok.body.json
         #expect(body.parameters?.result == true)
         #expect(body.error == nil)
@@ -476,6 +478,8 @@ struct EnvelopeDecodingTests {
         #expect(parameters.promocode == "SX786TZ8L6")
         #expect(parameters.giftTo == nil)
         #expect(parameters.delivery == nil)
+        // Blueprint-only field (P25) — the anonymous-cart handle.
+        #expect(parameters.userToken == "9040A083D15FFF777A695EB266903EA5")
     }
 
     @Test("payOrder decodes lowercase result", .tags(.specContract))

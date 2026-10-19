@@ -90,7 +90,12 @@ declared side and says so inline — unless the declared side could never carry
 the example (then the example wins, also declared). The vendor document
 contributed fresh instances:
 
-- `phone` — `number` on `createClient`, `string` on `updateClient`.
+- `phone` — `number` on `createClient`; the Blueprint declares it `string` on
+  `updateClientById`, and the vendor's `PUT client` schema omits it entirely
+  while its own example sends `79211234567` — declared `number` (`P20`).
+- `salon_id` in request bodies — required in the Blueprint for `createClient`,
+  `updateClientById`, `searchClients`, `updateRecord`; the vendor schemas omit
+  it while the vendor examples send it — declared optional (`P21`).
 - `amount` — `number` declared; v2 `payment` example sends `"136"` strings.
 - `transaction_id` — `string` declared; `visit_payment` example sends bare
   number.
@@ -99,7 +104,11 @@ contributed fresh instances:
 - `price` — `float` declared, `"1000"` strings in `price_list` example.
 - `debt_visits.Staff` — declared object, example string.
 - `record_rating.comment` — declared `number` in *both* documents; the
-  Blueprint's example sends `"Отличное обслуживание"`.
+  Blueprint's example sends `"Отличное обслуживание"`. Example wins — patched
+  to `string` (`P26`).
+- `cart_cost.user_token` — documented in the Blueprint's v1 field table (the
+  anonymous-cart handle), absent from the vendor YAML — declared optional
+  (`P25`).
 - `certificates.total`/`balance` — declared `string`, vendor's own example
   sends `5000`/`2000`. Example wins (`P19`) — a string cannot carry it.
 - `services` — `category` vs `category_id` across documents (`P18` keeps both).
@@ -134,7 +143,7 @@ Callers render or scrape them themselves.
 ## TD-9 — Vendor document defects carried as patches
 
 The vendor's OpenAPI 3.1 is richer than the Blueprint but not immaculate —
-19 patches in `apply-patches.sh` correct it, most being genuine defects rather
+26 patches in `apply-patches.sh` correct it, most being genuine defects rather
 than preferences. The mechanical ones worth re-checking when the vendor
 republishes:
 
@@ -145,7 +154,12 @@ republishes:
 - `id`/`title` properties `$ref`'d to the `Errors` schema (`P14`),
 - `delivery_list[].id` not nullable while the wire sends null (`P15`),
 - `auth_types.method` over-required (`P16`),
-- certificates `total`/`balance` declared `string` vs example numbers (`P19`).
+- certificates `total`/`balance` declared `string` vs example numbers (`P19`),
+- `PUT client` request schema missing `phone` its own example sends (`P20`),
+- `order_by_direction` enum lifted from the example, missing `ASC` (`P22`),
+- `Filter.value` an untyped array where its description allows a scalar
+  string (`P23`),
+- `Ticket` missing six keys the vendor's own examples carry (`P24`).
 
 **Cost:** if a future vendor revision fixes a site we also patched, the patch
 becomes a silent no-op or a stale conflict — each patch comment names what to

@@ -1075,9 +1075,12 @@ enum Fixture {
 
     /// `GET /hs/api/v1/cart_cost/` → 200, verbatim (abbreviated): `gift_to`/
     /// `delivery` null, `promocode` echoed, `payment_types` listed.
+    /// `user_token` added per the Blueprint field table — the example itself
+    /// omits it (patch P25, TD-6).
     static let cartCostResponseJSON = #"""
     {
         "parameters": {
+            "user_token": "9040A083D15FFF777A695EB266903EA5",
             "cart": [
                 {
                     "purchase": {

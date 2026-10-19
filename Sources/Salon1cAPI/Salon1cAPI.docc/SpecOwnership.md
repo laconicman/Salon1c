@@ -44,6 +44,19 @@ Upstream never gets edited in place; the output file never gets edited at all.
 - `P16` `auth_types` items required `method`; the vendor's own example omits it.
 - `P19` `certificates.total/balance` declared `string`, vendor example sends
   numbers — a `string` could never carry the documented payload.
+- `P20` `PUT client` request schema drops `phone` while its own example sends
+  `phone: 79211234567` — added as `number`, matching `createClient`.
+- `P22` `searchClients.order_by_direction` enumerates only `DESC` (lifted from
+  the example) while its description reads «`ASC` или `DESC`» — both declared.
+- `P23` `Filter.value` was `array` of untyped items while its description
+  allows «как строкой, так и массивом строк» — `oneOf` string | [string].
+- `P24` `Ticket` lacked six keys the vendor's own tickets/ticket examples
+  carry (`total_frozen`, `balance_frozen`, `min_frozen_count`,
+  `total_guest_visit`, `balance_guest_visit`, `freeze_list`) — declared
+  optional with the examples' types; `freeze_list`'s item shape is
+  undocumented.
+- `P26` `record_rating.comment` declared `number` in *both* documents while
+  both examples send a string — the example wins, as with `P19`.
 
 **Project choices** (correct upstream, different here):
 
@@ -70,6 +83,13 @@ Upstream never gets edited in place; the output file never gets edited at all.
   `category` — both declared optional.
 - `P17` authorize's `oneOf` branches needed discriminating requireds
   (`sent_SMS` / `UserToken`) — all-optional case1 swallowed case2 payloads.
+- `P21` the Blueprint declares `salon_id` (required) in the request bodies of
+  `createClient`, `updateClientById`, `searchClients` and `updateRecord`; the
+  vendor schemas omit it while the vendor examples still send it — declared
+  optional, the path parameter stays authoritative.
+- `P25` v1 `cart_cost`: the Blueprint field table documents `user_token` in
+  the response (the anonymous-cart handle, returned when no `usertoken`
+  header); the vendor YAML never mentions it — declared optional.
 
 ## Envelope dialect map
 

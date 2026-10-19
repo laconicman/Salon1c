@@ -252,6 +252,61 @@ CERT='.paths."/hs/api/v1/certificates/{salon_id}".get.responses."200".content."a
 yq -i "$CERT.total.type = \"number\"" "$WORK"
 yq -i "$CERT.balance.type = \"number\"" "$WORK"
 
+# P20 — vendor omission: PUT client (updateClientById) drops `phone` from the
+# request schema while its own example sends `phone: 79211234567` and the
+# Blueprint's ClientCreate structure declares it. Typed as on POST (`number`,
+# «только цифры») so create and update agree. TD-6 class.
+yq -i '.paths."/hs/api/v1/client/{salon_id}/".put.requestBody.content."application/json".schema.properties.phone = {"type": "number", "description": "Номер телефона (только цифры)"}' "$WORK"
+
+# P21 — `salon_id` in request bodies. The Blueprint declares it (required) in
+# the bodies of createClient, updateClientById, searchClients and updateRecord;
+# the vendor schemas omit it while the vendor examples still send it (an empty
+# string on the client ops). Declared optional: the path parameter is
+# authoritative and callers who need the duplicate can send it. TD-6 class.
+sidbody() { # $1 path  $2 method
+  yq -i '.paths."'"$1"'".'"$2"'.requestBody.content."application/json".schema.properties.salon_id =
+    {"type": "string",
+     "description": "ID салона (дублирует параметр пути; в Blueprint обязателен в теле, в примерах вендора пустая строка)"}' "$WORK"
+}
+sidbody '/hs/api/v1/client/{salon_id}/'  post
+sidbody '/hs/api/v1/client/{salon_id}/'  put
+sidbody '/hs/api/v1/clients/{salon_id}/' post
+sidbody '/hs/api/v1/records/{salon_id}/' put
+
+# P22 — vendor under-enumeration: searchClients `order_by_direction` enumerates
+# only `DESC` (lifted from the example) while its own description reads
+# «`ASC` или `DESC`». Both directions declared.
+yq -i '.paths."/hs/api/v1/clients/{salon_id}/".post.requestBody.content."application/json".schema.properties.order_by_direction.enum = ["ASC", "DESC"]' "$WORK"
+
+# P23 — vendor under-typing: `Filter.value` is `array` of untyped items while
+# its description reads «Может быть как строкой, так и массивом строк». A oneOf
+# of string | [string] lets a scalar phone filter be sent.
+yq -i '.components.schemas.Filter.properties.value = {"description": "Значение для фильтрации. Может быть как строкой, так и массивом строк", "oneOf": [{"type": "string"}, {"type": "array", "items": {"type": "string"}}]}' "$WORK"
+
+# P24 — vendor omission: the Ticket schema lacks six keys that the vendor's own
+# tickets/ticket examples (and the Blueprint's examples) carry: total_frozen,
+# balance_frozen, min_frozen_count, total_guest_visit, balance_guest_visit,
+# freeze_list. Neither document describes them; declared optional with the
+# examples' types (numbers; freeze_list is an array whose item shape is
+# undocumented — the examples show only `[]`).
+TK='.components.schemas.Ticket.properties'
+for k in total_frozen balance_frozen min_frozen_count total_guest_visit balance_guest_visit; do
+  yq -i "$TK.$k = {\"type\": \"number\", \"description\": \"Поле из примера вендора; в таблице полей не описано\"}" "$WORK"
+done
+yq -i '.components.schemas.Ticket.properties.freeze_list = {"type": "array", "items": {}, "description": "Список заморозок (поле из примера вендора; форма элемента не документирована)"}' "$WORK"
+
+# P25 — Blueprint-only response field: the v1 cart_cost field table documents
+# `user_token` — «Возвращается, если usertoken не передан в заголовках», i.e.
+# the anonymous-cart handle — and the vendor YAML never mentions it. Declared
+# optional so an anonymous checkout can read it. TD-6 class until the wire
+# confirms either document.
+yq -i '.paths."/hs/api/v1/cart_cost/{salon_id}/".get.responses."200".content."application/json".schema.properties.parameters.properties.user_token = {"type": "string", "description": "Токен доступа клиента. Возвращается, если usertoken не передан в заголовках (Blueprint; в YAML вендора отсутствует)"}' "$WORK"
+
+# P26 — rateVisit `comment` is declared `number` in both documents, and both
+# documents' examples send the string «Отличное обслуживание». A number cannot
+# carry a comment; as with P19 the example takes precedence. TD-6 class.
+yq -i '.paths."/hs/api/v1/record_rating/{salon_id}".post.requestBody.content."application/json".schema.properties.comment.type = "string"' "$WORK"
+
 # Header marking the file as generated output.
 { echo '# -----------------------------------------------------------------'
   echo '# GENERATED FILE — do not edit by hand.'

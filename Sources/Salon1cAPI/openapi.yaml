@@ -2411,6 +2411,9 @@ paths:
                 birth_date:
                   type: string
                   description: Дата рождения в формате `YYYY-MM-DD`
+                salon_id:
+                  type: string
+                  description: ID салона (дублирует параметр пути; в Blueprint обязателен в теле, в примерах вендора пустая строка)
               required:
                 - phone
     put:
@@ -2523,6 +2526,12 @@ paths:
                 id:
                   type: string
                   description: Идентификатор клиента
+                phone:
+                  type: number
+                  description: Номер телефона (только цифры)
+                salon_id:
+                  type: string
+                  description: ID салона (дублирует параметр пути; в Blueprint обязателен в теле, в примерах вендора пустая строка)
               required:
                 - id
   /hs/api/v1/clients/{salon_id}/:
@@ -2647,6 +2656,7 @@ paths:
                 order_by_direction:
                   type: string
                   enum:
+                    - ASC
                     - DESC
                   description: "Направление сортировки: `ASC` или `DESC`"
                 fields:
@@ -2658,6 +2668,9 @@ paths:
                   description: Массив фильтров по различным типам данных клиента
                   items:
                     $ref: "#/components/schemas/Filter"
+                salon_id:
+                  type: string
+                  description: ID салона (дублирует параметр пути; в Blueprint обязателен в теле, в примерах вендора пустая строка)
   /hs/api/v1/deposit_list/{salon_id}/:
     get:
       responses:
@@ -3294,6 +3307,9 @@ paths:
                   items:
                     $ref: '#/components/schemas/RecordArray'
                   description: Массив записей. При передаче этого параметра, затираются все старые записи в визите.
+                salon_id:
+                  type: string
+                  description: ID салона (дублирует параметр пути; в Blueprint обязателен в теле, в примерах вендора пустая строка)
               required:
                 - id
   /hs/api/v1/tickets/{salon_id}:
@@ -4080,7 +4096,7 @@ paths:
                   type: number
                   description: Оценка визита (число от 0 до 10).
                 comment:
-                  type: number
+                  type: string
                   description: Комментарий к визиту.
   /hs/api/v1/comments/{salon_id}/:
     get:
@@ -4606,6 +4622,9 @@ paths:
                               type: string
                             title:
                               $ref: "#/components/schemas/Title"
+                      user_token:
+                        type: string
+                        description: Токен доступа клиента. Возвращается, если usertoken не передан в заголовках (Blueprint; в YAML вендора отсутствует)
                   errors:
                     $ref: "#/components/schemas/Errors"
               example:
@@ -7356,9 +7375,12 @@ components:
           example: id
           description: Тип фильтра (`id`, `name`, `surname`, `patronymic`, `phone`, `email`)
         value:
-          type: array
-          items: {}
           description: Значение для фильтрации. Может быть как строкой, так и массивом строк
+          oneOf:
+            - type: string
+            - type: array
+              items:
+                type: string
     Record:
       type: object
       properties:
@@ -7555,6 +7577,25 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/IDTitle"
+        total_frozen:
+          type: number
+          description: Поле из примера вендора; в таблице полей не описано
+        balance_frozen:
+          type: number
+          description: Поле из примера вендора; в таблице полей не описано
+        min_frozen_count:
+          type: number
+          description: Поле из примера вендора; в таблице полей не описано
+        total_guest_visit:
+          type: number
+          description: Поле из примера вендора; в таблице полей не описано
+        balance_guest_visit:
+          type: number
+          description: Поле из примера вендора; в таблице полей не описано
+        freeze_list:
+          type: array
+          items: {}
+          description: Список заморозок (поле из примера вендора; форма элемента не документирована)
     Records:
       description: Данные визита
       type: object
