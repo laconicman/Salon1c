@@ -1501,5 +1501,90 @@ enum Fixture {
         }
     }
     """#
+
+    // MARK: - Operations that exist only in the vendor OpenAPI (absent from the
+    // .apib). Examples verbatim from `Upstream/salon1c-openapi/api_salon1c.yaml`
+    // unless marked «constructed».
+
+    /// `GET /hs/api/v1/certificates/{salon_id}` → 200, verbatim.
+    static let certificatesResponseJSON = #"""
+    {
+        "Parameters": [
+            {
+                "id": "745f78b9-b1ec-497b-b42e-961a9d9b610a",
+                "title": "Пакет 6 услуг",
+                "type": "online_certificate",
+                "status": "active",
+                "start_date": "2025-10-29",
+                "end_date": "2025-10-30",
+                "total": 5000,
+                "balance": 2000
+            }
+        ],
+        "Errors": {
+            "code": 0,
+            "message": ""
+        }
+    }
+    """#
+
+    /// `POST /hs/api/v1/sale/` → 200 — `Parameters` is a `Sale` object.
+    /// Verbatim vendor example; also serves `put_sale` (same schema).
+    static let saleResponseJSON = #"""
+    {
+        "Parameters": {
+            "id": "47efc7f111104513a25b302e6712df59",
+            "total_amount": 100,
+            "total_discount": 5
+        },
+        "Errors": {
+            "code": 0,
+            "message": "Описание ошибки"
+        }
+    }
+    """#
+
+    /// `POST /hs/api/v1/payment_link/` → 200, verbatim.
+    static let paymentLinkResponseJSON = #"""
+    {
+        "Parameters": {
+            "id": "47efc7f111104513a25b302e6712df59",
+            "link": "https://salon1c.ru/api/"
+        },
+        "Errors": {
+            "code": 0,
+            "message": "Описание ошибки"
+        }
+    }
+    """#
+
+    /// `DELETE /hs/api/v1/payment/{salon_id}` and `DELETE /hs/api/v1/sale/` → 200.
+    /// PascalCase `Result` inside `Parameters`, `Errors: null`. Verbatim.
+    static let pascalDeleteResultJSON = #"""
+    {
+        "Parameters": {
+            "Result": true
+        },
+        "Errors": null
+    }
+    """#
+
+    /// `GET|PUT /hs/api/v1/work_schedule/` → 200. Constructed per the WorkSchedule
+    /// schema — the vendor document declares no example for this operation.
+    static let workScheduleResponseJSON = #"""
+    {
+        "Parameters": [
+            {
+                "start": "2026-07-01T00:00:00",
+                "end": "2026-07-01T23:59:00",
+                "type": "active"
+            }
+        ],
+        "Errors": {
+            "code": 0,
+            "message": ""
+        }
+    }
+    """#
 }
 

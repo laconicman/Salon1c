@@ -1,0 +1,93 @@
+# --- Group Онлайн запись -------------------------------------------------
+ServiceIdsQuery:
+  type: object
+  description: "JSON-обёртка query-параметра `service_ids`; пример источника `{\"services_array\":[…]}`."
+  required:
+    - services_array
+  properties:
+    services_array:
+      type: array
+      items:
+        type: string
+      description: "Идентификаторы услуг в порядке оказания"
+RecordItem:
+  type: object
+  description: "Структура записи из Data Structure `Record` источника. Общая: элемент `record_array` в теле `bookVisit` и в query-параметре `getRecordCost`."
+  required:
+    - datetime
+    - service_id
+  properties:
+    datetime:
+      type: string
+      description: "Дата и время занятия в iso8601 (пример `20240831T1500`)"
+    service_id:
+      type: string
+      description: "Идентификатор услуги"
+    staff_id:
+      type: string
+      description: "Идентификатор сотрудника; без него подставится любой свободный"
+PaymentItem:
+  type: object
+  description: "Структура оплаты из Data Structure `PaymentList` источника. `type` — открытая строка: `cash` | `card` | `deposit` | `bonus`."
+  required:
+    - type
+    - amount
+  properties:
+    type:
+      type: string
+    amount:
+      type: number
+    id:
+      type: string
+      description: "Лицевой/бонусный счёт; только при `deposit`/`bonus`"
+CartQueryItem:
+  type: object
+  description: "Покупка корзины — Data Structure `cart` источника. `staff_id` — для терминалов самообслуживания."
+  required:
+    - purchase_id
+  properties:
+    purchase_id:
+      type: string
+    count:
+      type: number
+    staff_id:
+      type: string
+DeliveryQuery:
+  type: object
+  description: "Услуга доставки в запросе — Data Structure `delivery` источника. `options` обязателен но бывает `null` — объект данных ЯД."
+  required:
+    - id
+    - price
+    - options
+  properties:
+    id:
+      type: string
+    price:
+      type: number
+    options: {}
+CartClientQuery:
+  type: object
+  description: "Данные клиента строкой JSON — Data Structure `client` источника; обязателен без `usertoken` (тогда `phone`/`last_name`/`name` необходимы)."
+  properties:
+    phone:
+      type: string
+    last_name:
+      type: string
+    name:
+      type: string
+    second_name:
+      type: string
+    birthday:
+      type: string
+      description: "Формат `31.12.1990`"
+TerminalCartQueryItem:
+  type: object
+  description: "Покупка корзины терминала: `staff_id` обязателен, `count` в примере не встречается (услуги на терминале одноместные — TD-6)."
+  required:
+    - purchase_id
+    - staff_id
+  properties:
+    purchase_id:
+      type: string
+    staff_id:
+      type: string

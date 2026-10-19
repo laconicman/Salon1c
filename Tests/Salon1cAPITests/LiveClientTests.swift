@@ -38,7 +38,7 @@ struct LiveClientTests {
     func salonsLive() async throws {
         let (client, salonId) = try liveClient()
         let body = try await client.getSalons(path: .init(salonId: salonId)).ok.body.json
-        #expect(body.errors == nil || body.errors?.code == 0)
+        #expect(body.errors.code == 0)
     }
 
     @Test("getProductGroups answers a bare array in parameters")
@@ -120,12 +120,11 @@ struct LiveMutatingTests {
         let output = try await client.createClient(
             path: .init(salonId: salon.salonId),
             body: .json(.init(
-                salonId: salon.salonId,
                 name: "SALON1CAPI-LIVE-TEST",
                 phone: phone
             ))
         )
         let created = try output.created.body.json
-        #expect(created.parameters?.id != nil)
+        #expect(created.parameters.id != nil)
     }
 }

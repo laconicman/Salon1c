@@ -27,8 +27,8 @@ struct EnvelopeDecodingTests {
             Issue.record("expected .ok/.json, got \(output)")
             return
         }
-        guard case .AuthCodeSentEnvelope(let envelope) = payload else {
-            Issue.record("expected AuthCodeSentEnvelope, got \(payload)")
+        guard case .case1(let envelope) = payload else {
+            Issue.record("expected .case1 (code sent), got \(payload)")
             return
         }
         #expect(envelope.parameters?.sentSMS == true)
@@ -43,11 +43,11 @@ struct EnvelopeDecodingTests {
             body: .json(.init(login: "77731315", confirmationCode: "9876"))
         )
         let payload = try output.ok.body.json
-        guard case .UserTokenEnvelope(let envelope) = payload else {
-            Issue.record("expected UserTokenEnvelope, got \(payload)")
+        guard case .case2(let envelope) = payload else {
+            Issue.record("expected .case2 (UserToken), got \(payload)")
             return
         }
-        #expect(envelope.parameters.userToken == "9323751AAB5A5925142F352BBA7913B3")
+        #expect(envelope.parameters?.userToken == "9323751AAB5A5925142F352BBA7913B3")
         #expect(envelope.errors?.code == 0)
     }
 
@@ -77,7 +77,7 @@ struct EnvelopeDecodingTests {
             path: .init(salonId: "test-salon"),
             body: .json(.init(requestId: "27dd2f8e-32a4-11ee-b18f-f02f7488d897"))
         ).ok.body.json
-        #expect(body.parameters.userToken == "9323751AAB5A5925142F352BBA7913B3")
+        #expect(body.parameters?.userToken == "9323751AAB5A5925142F352BBA7913B3")
     }
 
     @Test("getBookableServices answers a PascalCase array, Errors absent", .tags(.specContract))
@@ -99,6 +99,7 @@ struct EnvelopeDecodingTests {
         #expect(staff.name == "Новикова Анна")
         #expect(staff.specialization?.title == "Косметолог")
         #expect(staff.upcomingDates?.count == 3)
+        #expect(staff.upcomingDates?.first == "2019-10-29T00:00:00")
         #expect(staff.ratings?.count == 2)
         #expect(staff.ratings?.last?.rating == 4.5)
         #expect(staff.commentsCount == 3)
@@ -134,7 +135,7 @@ struct EnvelopeDecodingTests {
         ).ok.body.json
         let item = try #require(body.parameters?.first)
         #expect(item.id == "ef0fd170-3c83-465d-836b-51d72d208831")
-        #expect(item.date?.first == "06.08.2024 11:00:00")
+        #expect(item.date.first == "06.08.2024 11:00:00")
     }
 
     @Test("bookVisit decodes the fuller result; Errors decodes as null", .tags(.specContract))
@@ -158,7 +159,7 @@ struct EnvelopeDecodingTests {
         let client = try Client.stubbed(json: Fixture.resultEnvelopeJSON)
         let rescheduled = try await client.rescheduleVisit(
             path: .init(salonId: "test-salon"),
-            query: .init(recordId: "d4608b12-5a07-11e9-899e-2c4d546557dd", datetime: "20170820T1030")
+            query: .init(datetime: "20170820T1030", recordId: "d4608b12-5a07-11e9-899e-2c4d546557dd")
         ).ok.body.json
         #expect(rescheduled.parameters?.result == true)
         #expect(rescheduled.errors == nil)
@@ -199,8 +200,8 @@ struct EnvelopeDecodingTests {
         #expect(visit.status == "Finished")
         #expect(visit.actualStartDate == "2019-10-15T14:00:00")
         let service = try #require(visit.services?.first)
-        #expect(service.service?.title == "Воздушно-вихревой массаж")
-        #expect(service.staff?.title == "Ипритова Инга Юрьевна")
+        #expect(service.service.title == "Воздушно-вихревой массаж")
+        #expect(service.staff.title == "Ипритова Инга Юрьевна")
         #expect(visit.client?.phones?.first == "+7 (999) 8452010")
     }
 
@@ -258,11 +259,11 @@ struct EnvelopeDecodingTests {
         let client = try Client.stubbed(status: .created, json: Fixture.clientCreatedResponseJSON)
         let output = try await client.createClient(
             path: .init(salonId: "test-salon"),
-            body: .json(.init(salonId: "test-salon", name: "Василий", phone: 79211234567))
+            body: .json(.init(name: "Василий", phone: 79211234567))
         )
         let body = try output.created.body.json
-        #expect(body.parameters?.name == "Василий")
-        #expect(body.errors?.code == 0)
+        #expect(body.parameters.name == "Василий")
+        #expect(body.errors.code == 0)
     }
 
     @Test("createClient surfaces the documented 400 as an output case", .tags(.specContract))
@@ -270,7 +271,7 @@ struct EnvelopeDecodingTests {
         let client = try Client.stubbed(status: .badRequest, json: Fixture.badRequestResponseJSON)
         let output = try await client.createClient(
             path: .init(salonId: "test-salon"),
-            body: .json(.init(salonId: "test-salon", phone: 79211234567))
+            body: .json(.init(phone: 79211234567))
         )
         guard case .badRequest(let badRequest) = output else {
             Issue.record("expected .badRequest, got \(output)")
@@ -285,15 +286,14 @@ struct EnvelopeDecodingTests {
         let body = try await client.searchClients(
             path: .init(salonId: "test-salon"),
             body: .json(.init(
-                salonId: "test-salon",
                 orderByDirection: .desc,
-                filters: [.init(_type: "phone", value: .case1("77777777777"))]
+                filters: [.init(_type: "phone", value: [.init(unvalidatedValue: "77777777777")])]
             ))
         ).ok.body.json
-        #expect(body.parameters?.first?.surname == "Петров")
-        #expect(body.parameters?.first?.statusId == 2)
-        #expect(body.meta?.itemsCount == 10)
-        #expect(body.meta?.pagesCount == 2)
+        #expect(body.parameters.first?.surname == "Петров")
+        #expect(body.parameters.first?.statusId == 2)
+        #expect(body.meta.itemsCount == 10)
+        #expect(body.meta.pagesCount == 2)
     }
 
     @Test("getClientAccounts decodes deposit entries, history_exist as bool", .tags(.specContract))
@@ -301,10 +301,10 @@ struct EnvelopeDecodingTests {
         let client = try Client.stubbed(json: Fixture.clientAccountsResponseJSON)
         let body = try await client.getClientAccounts(path: .init(salonId: "test-salon")).ok.body.json
         let entry = try #require(body.parameters?.first)
-        #expect(entry.deposit?.depositType == "deposit")
-        #expect(entry.deposit?.historyExist == true)
+        #expect(entry.deposit.depositType == "deposit")
+        #expect(entry.deposit.historyExist == true)
         #expect(entry.balance == 1700)
-        #expect(body.parameters?.last?.deposit?.depositType == "bonus")
+        #expect(body.parameters?.last?.deposit.depositType == "bonus")
     }
 
     @Test("updateClientProfile decodes Result + data_client", .tags(.specContract))
@@ -336,8 +336,8 @@ struct EnvelopeDecodingTests {
         let body = try await client.getClientVisitHistory(path: .init(salonId: "test-salon")).ok.body.json
         let visit = try #require(body.parameters?.first)
         #expect(visit.status == "arrived")
-        #expect(visit.services?.first?.service?.name == "Гидромассаж")
-        #expect(visit.services?.first?.staff?.name == "Ипритова Инга Юрьевна")
+        #expect(visit.services?.first?.service.name == "Гидромассаж")
+        #expect(visit.services?.first?.staff.name == "Ипритова Инга Юрьевна")
         #expect(visit.sumTotal == 6600)
     }
 
@@ -353,7 +353,8 @@ struct EnvelopeDecodingTests {
         #expect(ticket.typeActivation?._type == "at_sale")
         #expect(ticket.serviceList?.first?.title == "Услуга 3")
         #expect(ticket.availableClubs?.first?.title == "Салон 1")
-        #expect(ticket.balanceFrozen == 0)
+        // Vendor OpenAPI dropped `balance_frozen` from the Ticket schema — the
+        // wire may still send it; decoding ignores it. Tracked in SpecOwnership.
     }
 
     @Test("getClientTicket answers a single-object Parameters", .tags(.specContract))
@@ -371,10 +372,10 @@ struct EnvelopeDecodingTests {
     func salonsEnvelope() async throws {
         let client = try Client.stubbed(json: Fixture.salonsResponseJSON)
         let body = try await client.getSalons(path: .init(salonId: "test-salon")).ok.body.json
-        let salon = try #require(body.parameters?.first)
+        let salon = try #require(body.parameters.first)
         #expect(salon.title == "OOO \"Салон красоты\"")
-        #expect(salon.workTime?.first?.day == 1)
-        #expect(salon.workTime?.first?.end == "22:00")
+        #expect(salon.workTime.first?.day == 1)
+        #expect(salon.workTime.first?.end == "22:00")
         #expect(salon.contactInformation?.address == "г.Москва")
     }
 
@@ -382,13 +383,13 @@ struct EnvelopeDecodingTests {
     func recordsListEnvelope() async throws {
         let client = try Client.stubbed(json: Fixture.recordsListResponseJSON)
         let body = try await client.getRecordsList(path: .init(salonId: "test-salon")).ok.body.json
-        let record = try #require(body.parameters?.first)
+        let record = try #require(body.parameters.first)
         #expect(record.status == "confirmed")
         #expect(record.client?.displayName == "Соновен Савелий Васильевич")
         #expect(record.staffs?.first?.specialization?.title == "Врач стоматолог")
         #expect(record.services?.first?.costPerUnit == 500)
         #expect(record.createdUser?.title == "Администратор")
-        #expect(body.meta?.pageSize == 5)
+        #expect(body.meta.pageSize == 5)
     }
 
     @Test("updateRecord answers the same array, no Meta", .tags(.specContract))
@@ -399,20 +400,22 @@ struct EnvelopeDecodingTests {
         ))
         let body = try await client.updateRecord(
             path: .init(salonId: "test-salon"),
-            body: .json(.init(salonId: "test-salon", id: "7c802c46-a899-4da1-b87c-eb2d68254f0f", status: "ended"))
+            body: .json(.init(id: "7c802c46-a899-4da1-b87c-eb2d68254f0f", status: "ended"))
         ).ok.body.json
-        #expect(body.parameters?.first?.id == "7c802c46-a899-4da1-b87c-eb2d68254f0f")
+        #expect(body.parameters.first?.id == "7c802c46-a899-4da1-b87c-eb2d68254f0f")
     }
 
     @Test("getServices decodes category object and staff array", .tags(.specContract))
     func servicesListEnvelope() async throws {
         let client = try Client.stubbed(json: Fixture.servicesListResponseJSON)
         let body = try await client.getServices(path: .init(salonId: "test-salon")).ok.body.json
-        let service = try #require(body.parameters?.first)
+        let service = try #require(body.parameters.first)
+        // .apib example sends `category` (object); vendor declares `category_id`.
+        // P13 collapsed the null-oneOf; P18 declares both spellings (TD-6 class).
         #expect(service.category?.title == "Хирургия")
         #expect(service.staff?.first?.seanceLength == 60)
         #expect(service.active == true)
-        #expect(body.meta?.itemsCount == 10)
+        #expect(body.meta.itemsCount == 10)
     }
 
     @Test("rateVisit answers the singular-Error envelope", .tags(.specContract))
@@ -420,7 +423,9 @@ struct EnvelopeDecodingTests {
         let client = try Client.stubbed(json: Fixture.rateVisitResponseJSON)
         let body = try await client.rateVisit(
             path: .init(salonId: "test-salon"),
-            body: .json(.init(recordId: "3daa8097-ff6a-11e7-b770-0050568b5c8d", staffId: "222d3814-49f4-11e7-b491-0050568b5c8d", rating: 5, comment: "Отличное обслуживание"))
+            // `comment` is declared `number` by both the Blueprint and the vendor
+            // OpenAPI, though the Blueprint's own example sends a string (TD-6).
+            body: .json(.init(recordId: "3daa8097-ff6a-11e7-b770-0050568b5c8d", staffId: "222d3814-49f4-11e7-b491-0050568b5c8d", rating: 5, comment: 5))
         ).ok.body.json
         #expect(body.parameters?.result == true)
         #expect(body.error == nil)
@@ -471,7 +476,6 @@ struct EnvelopeDecodingTests {
         #expect(parameters.promocode == "SX786TZ8L6")
         #expect(parameters.giftTo == nil)
         #expect(parameters.delivery == nil)
-        #expect(parameters.userToken == nil)
     }
 
     @Test("payOrder decodes lowercase result", .tags(.specContract))
@@ -569,7 +573,7 @@ struct EnvelopeDecodingTests {
         let body = try await client.getProductFilters(path: .init(salonId: "test-salon")).ok.body.json
         let filter = try #require(body.parameters?.first)
         #expect(filter.id == "price")
-        #expect(filter.values?.map(\.id) == ["from", "to"])
+        #expect(filter.values.map(\.id) == ["from", "to"])
     }
 
     // MARK: - Терминал самообслуживания (v2)
@@ -650,5 +654,104 @@ struct EnvelopeDecodingTests {
         ).ok.body.json
         #expect(body.parameters?.result == true)
         #expect(body.parameters?.recordId == "22a871af-c9fa-11ee-80ec-04d4c44bd374")
+    }
+
+    // MARK: - Operations that exist only in the vendor OpenAPI (not in the .apib)
+
+    @Test("getClientCertificates decodes the vendor-declared certificate list", .tags(.specContract))
+    func certificatesEnvelope() async throws {
+        let client = try Client.stubbed(json: Fixture.certificatesResponseJSON)
+        let body = try await client.getClientCertificates(path: .init(salonId: "test-salon")).ok.body.json
+        let cert = try #require(body.parameters?.first)
+        #expect(cert._type == "online_certificate")
+        #expect(cert.status == "active")
+        // Vendor declares these strings but its own example sends numbers —
+        // numbers win (patch P19, TD-6 class).
+        #expect(cert.total == 5000)
+        #expect(cert.balance == 2000)
+        #expect(body.errors?.code == 0)
+    }
+
+    @Test("createSale and updateSale share the Sale parameters", .tags(.specContract))
+    func saleEnvelope() async throws {
+        let client = try Client.stubbed(json: Fixture.saleResponseJSON)
+        let created = try await client.createSale(
+            path: .init(salonId: "test-salon"),
+            body: .json(.init(
+                recordArray: [.init(datetime: "20240831T1500", serviceId: "9ca0fa6c-48ee-11ea-96bc-38d547b31ac0")],
+                name: "Пётр"
+            ))
+        ).ok.body.json
+        #expect(created.parameters.id == "47efc7f111104513a25b302e6712df59")
+        #expect(created.parameters.totalAmount == 100)
+        #expect(created.errors.code == 0)
+
+        let updated = try await client.updateSale(
+            path: .init(salonId: "test-salon"),
+            body: .json(.init(
+                id: "47efc7f111104513a25b302e6712df59",
+                recordArray: [.init(datetime: "20240831T1500", serviceId: "9ca0fa6c-48ee-11ea-96bc-38d547b31ac0")]
+            ))
+        ).ok.body.json
+        #expect(updated.parameters.id == "47efc7f111104513a25b302e6712df59")
+    }
+
+    @Test("cancelSale and cancelPayment answer the PascalCase Result envelope", .tags(.specContract))
+    func saleAndPaymentDeleteEnvelopes() async throws {
+        let client = try Client.stubbed(json: Fixture.pascalDeleteResultJSON)
+        let sale = try await client.cancelSale(
+            path: .init(salonId: "test-salon"),
+            query: .init(id: "47efc7f111104513a25b302e6712df59")
+        ).ok.body.json
+        #expect(sale.parameters?.result == true)
+        #expect(sale.errors == nil)
+
+        let payment = try await client.cancelPayment(
+            path: .init(salonId: "test-salon"),
+            query: .init(rowId: "47efc7f111104513a25b302e6712df59", orderId: "00000000002")
+        ).ok.body.json
+        #expect(payment.parameters?.result == true)
+    }
+
+    @Test("createPaymentLink decodes id + link", .tags(.specContract))
+    func paymentLinkEnvelope() async throws {
+        let client = try Client.stubbed(json: Fixture.paymentLinkResponseJSON)
+        let body = try await client.createPaymentLink(
+            path: .init(salonId: "test-salon"),
+            body: .json(.init(recordId: "47efc7f111104513a25b302e6712df59"))
+        ).ok.body.json
+        #expect(body.parameters.id == "47efc7f111104513a25b302e6712df59")
+        #expect(body.parameters.link == "https://salon1c.ru/api/")
+    }
+
+    @Test("getStaffWorkSchedule decodes WorkSchedule intervals; update echoes them", .tags(.specContract))
+    func workScheduleEnvelope() async throws {
+        let client = try Client.stubbed(json: Fixture.workScheduleResponseJSON)
+        let body = try await client.getStaffWorkSchedule(
+            path: .init(salonId: "test-salon"),
+            query: .init(staffId: "e6c1b1fa-0571-11e7-a42a-0050568b5c8d", startDate: "2026-07-01", endDate: "2026-07-31")
+        ).ok.body.json
+        let slot = try #require(body.parameters?.first)
+        #expect(slot.start == "2026-07-01T00:00:00")
+        #expect(slot._type == "active")
+        #expect(body.errors?.code == 0)
+
+        let updated = try await client.updateStaffWorkSchedule(
+            path: .init(salonId: "test-salon"),
+            body: .json(.init(
+                staffId: "e6c1b1fa-0571-11e7-a42a-0050568b5c8d",
+                items: [.init(date: "2026-07-01", times: [.init(begin: "00:00", end: "23:59")])]
+            ))
+        ).ok.body.json
+        #expect(updated.parameters?.first?._type == "active")
+    }
+
+    @Test("getPrivacyPolicy returns the html body case", .tags(.specContract))
+    func privacyPolicyHTMLBody() async throws {
+        let client = try Client.stubbed(json: "<html><body>Политика</body></html>", contentType: "text/html")
+        let output = try await client.getPrivacyPolicy(path: .init(salonId: "test-salon"))
+        let html = try await output.ok.body.html
+        let text = try await String(collecting: html, upTo: 1024 * 64)
+        #expect(text.contains("Политика"))
     }
 }
