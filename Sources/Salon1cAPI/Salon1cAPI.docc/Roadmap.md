@@ -3,11 +3,13 @@
 Planned work, in priority order. Nothing here ships until the item above it does —
 the package was built in that order too.
 
-## Now — before `0.1.0`
+## Now — vendor-spec adoption (`0.2.0` candidate)
 
-- **Documentation** — this catalog, plus a README that shows the same flow.
-- **Review passes** — DeepWiki (free, indexed `main`) then Devin Review on each PR.
-- **`0.1.0` tag** once the catalog and review debt are green.
+- **Vendor document is upstream** — `api_salon1c.yaml` + `apply-patches.sh`
+  pipeline landed with all 62 operations and 19 declared patches.
+- **Fresh-vendor adoption check** — the next time 1С republishes the document,
+  every `Pn` entry is a re-verification checklist (TD-9).
+- **Tag** once the adoption PR is reviewed and merged.
 
 ## Next — needs live access (TD-1)
 

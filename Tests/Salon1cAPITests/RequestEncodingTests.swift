@@ -137,4 +137,46 @@ struct RequestEncodingTests {
         #expect(path.hasPrefix("/hs/api/v2/book_staff/?"))
         #expect(!path.contains("salon_id"))
     }
+
+    @Test("updateClientById body carries phone and salon_id (P20/P21)", .tags(.specContract))
+    func updateClientBodyPhoneAndSalonId() async throws {
+        let recorder = RequestRecorder()
+        let client = try Client.recording(recorder: recorder, json: Fixture.clientCreatedResponseJSON)
+        _ = try await client.updateClientById(
+            path: .init(salonId: "0d190fc8-1c01-11ef-b1bf-f02f7488d897"),
+            body: .json(.init(
+                id: "47efc7f111104513a25b302e6712df59",
+                phone: 79211234567,
+                salonId: "0d190fc8-1c01-11ef-b1bf-f02f7488d897"
+            ))
+        )
+        let body = try #require(await recorder.requestBody)
+        let object = try #require(JSONSerialization.jsonObject(with: Data(body.utf8)) as? [String: Any])
+        #expect(object["phone"] as? Double == 79211234567)
+        #expect(object["salon_id"] as? String == "0d190fc8-1c01-11ef-b1bf-f02f7488d897")
+    }
+
+    @Test("searchClients encodes ASC, body salon_id and both Filter.value shapes (P21/P22/P23)", .tags(.specContract))
+    func searchClientsBodyShapes() async throws {
+        let recorder = RequestRecorder()
+        let client = try Client.recording(recorder: recorder, json: Fixture.clientsResponseJSON)
+        _ = try await client.searchClients(
+            path: .init(salonId: "test-salon"),
+            body: .json(.init(
+                orderByDirection: .asc,
+                filters: [
+                    .init(_type: "phone", value: .case1("79211234567")),
+                    .init(_type: "id", value: .case2(["47efc7f111104513a25b302e6712df59"]))
+                ],
+                salonId: "0d190fc8-1c01-11ef-b1bf-f02f7488d897"
+            ))
+        )
+        let body = try #require(await recorder.requestBody)
+        let object = try #require(JSONSerialization.jsonObject(with: Data(body.utf8)) as? [String: Any])
+        #expect(object["order_by_direction"] as? String == "ASC")
+        #expect(object["salon_id"] as? String == "0d190fc8-1c01-11ef-b1bf-f02f7488d897")
+        let filters = try #require(object["filters"] as? [[String: Any]])
+        #expect(filters[0]["value"] as? String == "79211234567")
+        #expect(filters[1]["value"] as? [String] == ["47efc7f111104513a25b302e6712df59"])
+    }
 }

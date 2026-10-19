@@ -5,9 +5,12 @@ this file — nothing here restates it. These are the diff-level cues and the no
 
 ## Critical Areas
 
-- `Sources/Salon1cAPI/openapi.yaml` is the API surface. Require any change to a schema's
-  shape, required-ness, or enum values to cite provenance beside the edit — an
-  `Upstream/salon1c/salon1c.apib` section name or line, or a dated wire observation.
+- `Sources/Salon1cAPI/openapi.yaml` is *generated output* — it must carry the header
+  comment naming `Upstream/salon1c-openapi/apply-patches.sh` as its source, and its diff
+  should only ever change via that script. Hand-edits to it, or edits to
+  `Upstream/salon1c-openapi/api_salon1c.yaml` (the vendor file is verbatim upstream), are
+  the defect this pipeline exists to prevent. New shape corrections belong in
+  `apply-patches.sh` as commented `# Pn` blocks.
 - Flag any change to envelope key casing (`parameters`/`errors` ↔ `Parameters`/`Errors`/
   `Meta`). The two dialects are deliberate per-operation fidelity — a "consistency" edit
   is a spec regression, not a fix.
@@ -25,7 +28,7 @@ this file — nothing here restates it. These are the diff-level cues and the no
 ## Conventions
 
 - Reject hand-written Swift that reshapes or wraps a `Components.Schemas.*` type — the fix
-  belongs in `Sources/Salon1cAPI/openapi.yaml`.
+  belongs in `apply-patches.sh` as a new patch entry.
 - Reject committed generated code: a reappearing `Sources/GeneratedSources/` directory, or
   a committed `Client.swift` / `Types.swift`.
 - Flag a status flip of a `TD-n` entry in

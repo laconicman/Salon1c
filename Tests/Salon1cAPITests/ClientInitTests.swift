@@ -9,7 +9,7 @@ import Testing
 struct ClientInitTests {
     @Test("the declared server is the documented cloud host", .tags(.specContract))
     func declaredServerURL() throws {
-        #expect(try Servers.Server1.url().absoluteString == "http://cloud.salon1c.ru/api")
+        #expect(try Servers.Server1.url().absoluteString == "http://cloud.salon1c.ru/api/")
     }
 
     @Test("client builds over a stub transport with default server")

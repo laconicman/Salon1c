@@ -37,13 +37,15 @@ struct MockServerTests {
         let body = try await client.getSalons(
             path: .init(salonId: "mock-salon")
         ).ok.body.json
-        #expect(body.parameters?.first?.title != nil)
+        #expect(body.parameters.first?.title != nil)
     }
 
     @Test("getPriceList answers errors nested inside parameters — the TD-5 shape", .tags(.regression))
     func priceListNestedErrors() async throws {
         // The strangest dialect claim, verified against the vendor's own mock: the
-        // error object lives *inside* parameters, beside navigation.
+        // error object lives *inside* parameters, beside navigation. The vendor
+        // OpenAPI types `errors` at top level instead — patch P9 keeps both shapes
+        // decodable; the mock still serves the nested one.
         let client = try LiveEnvironment.mockClient()
         let body = try await client.getPriceList(
             path: .init(salonId: "mock-salon"),

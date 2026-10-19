@@ -12,22 +12,24 @@ and this file disagree, believe them.
 | Article | Answers |
 |---|---|
 | [Design](Sources/Salon1cAPI/Salon1cAPI.docc/Design.md) | Every load-bearing decision, with the alternative that was rejected |
-| [Owning the Specification](Sources/Salon1cAPI/Salon1cAPI.docc/SpecOwnership.md) | Why `openapi.yaml` is hand-written, and what that obligates |
+| [Owning the Specification](Sources/Salon1cAPI/Salon1cAPI.docc/SpecOwnership.md) | The vendored-upstream + declared-patch model, and the patch register |
 | [Tech Debt](Sources/Salon1cAPI/Salon1cAPI.docc/TechDebt.md) | Numbered register (`TD-n`), each with Cost and Discharge |
 | [Roadmap](Sources/Salon1cAPI/Salon1cAPI.docc/Roadmap.md) | Planned work, priority order |
-| [Upstream cache](Upstream/salon1c/README.md) | The vendor's API Blueprint, verbatim, plus its internal defect list |
+| [Upstream cache](Upstream/salon1c-openapi/README.md) | The vendor's OpenAPI 3.1 + PDF, verbatim; `apply-patches.sh` regenerates `openapi.yaml` |
 
 Render: `swift package generate-documentation --target Salon1cAPI`
 
 ## Rules specific to this repository
 
-1. **Fix spec problems in `openapi.yaml`, not in Swift.** We own the document — the vendor
-   publishes only an API Blueprint. A hand-written extension that works around a generated
-   shape is a workaround with a fixable root cause.
+1. **Fix spec problems as patches, not in Swift.** `openapi.yaml` is generated: the
+   vendored `api_salon1c.yaml` + `apply-patches.sh`. Never edit upstream files or the
+   output; a shape correction is a commented `# Pn` block. A hand-written extension that
+   works around a generated shape is a workaround with a fixable root cause.
 2. **Never edit generated code, and never commit it.** The build plugin regenerates
    `Client.swift` / `Types.swift` into the build directory.
-3. **`nameOverrides` is safe for properties, broken for operations.** Use `operationId` in
-   the document — verified upstream; write-up in
+3. **`nameOverrides` is unsafe here.** Broken for operations, and for schemas it leaks
+   into unrelated property names — patch the document instead (`P1` for operationIds,
+   `P7` for the `cart`/`Cart` collision). Write-up in
    `../YooMoneyAPIClient/Upstream/nameoverrides-verbatim-casing.md`.
 4. **Platform floor is iOS 17 / macOS 14 / tvOS 17 / watchOS 10 / visionOS 1.** No
    `@available` annotations belong in this package.
@@ -50,9 +52,10 @@ Render: `swift package generate-documentation --target Salon1cAPI`
 11. **Everything lands via PR.** `main` is protected; Devin Review runs on push and
     `REVIEW.md` steers it. No AI attribution in commit messages or PR descriptions.
 12. **Documented behaviour is the contract until the wire disagrees.** There is no test
-    credential yet; where the .apib contradicts itself, the spec picks a shape and the
-    conflict is a `TD-n`, not a silent choice. Once live calls exist: replicate wire
-    behaviour that works; change it only on evidence.
+    credential yet; where a document contradicts itself — or the vendor YAML and the
+    .apib contradict each other — the patch picks a shape and the conflict is a `TD-n`,
+    not a silent choice. Once live calls exist: replicate wire behaviour that works;
+    change it only on evidence.
 
 ## Author's standing preferences
 
