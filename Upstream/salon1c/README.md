@@ -1,8 +1,11 @@
 # Upstream — `salon1c.apib`
 
-The vendor's only published API reference. 1С publishes **no OpenAPI document** for the
-1С:SPA-Салон API — `openapi.yaml` in this package was written by hand against this file,
-which makes it both the contract and the thing that may be wrong
+The vendor's **secondary** published reference — an API Blueprint served by Apiary.
+Since 2026-10-15 the vendor's own OpenAPI 3.1 (`Upstream/salon1c-openapi/api_salon1c.yaml`)
+is the primary upstream; this file is kept verbatim because the Apiary **mock** replays
+it (`SALON1C_MOCK_TESTS=1`) and a few documented wire shapes it carries — nested `errors`
+in `price_list`, `category` on services items, `Error`/`ErrorMessage` on auth — survive
+in the generated spec via patches P9/P11/P18
 (see `Sources/Salon1cAPI/Salon1cAPI.docc/SpecOwnership.md`).
 
 | | |

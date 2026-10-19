@@ -1,15 +1,15 @@
 # ``Salon1cAPI``
 
 A type-safe, async/await client for the **1С:SPA-Салон** API (редакция 3.0), generated
-from a hand-authored OpenAPI document with Apple's
+from the vendor's OpenAPI document — vendored verbatim, patched by a declared pipeline —
+with Apple's
 [swift-openapi-generator](https://github.com/apple/swift-openapi-generator).
 
 ## Overview
 
-The vendor publishes no OpenAPI document and no Swift SDK — only an API Blueprint at
-[salon1c.docs.apiary.io](https://salon1c.docs.apiary.io/). The document in this package
-was translated from that Blueprint by hand, which makes it the load-bearing artifact
-here — see <doc:SpecOwnership>. All **53 documented operations** are covered.
+The vendor publishes no Swift SDK. Its OpenAPI 3.1 document (редакция 3.0) is vendored
+verbatim in this package and patched through an auditable script — see
+<doc:SpecOwnership>. All **62 documented operations** are covered.
 
 The API serves three surfaces: a client app (auth, booking, visits, clients, ratings),
 an online shop (prices, cart, orders), and a self-service terminal (`/hs/api/v2/`).

@@ -9,10 +9,10 @@ and exposed as-is, so every request the API accepts is expressible.
 Requests go over [`URLSession`](https://developer.apple.com/documentation/foundation/urlsession)
 via [Swift OpenAPI URLSession Transport](https://github.com/apple/swift-openapi-urlsession).
 
-> **Unofficial.** 1С publishes neither a Swift SDK nor an OpenAPI document for this API.
-> `openapi.yaml` here was written by hand from the vendor's API Blueprint reference
-> (`Upstream/salon1c/salon1c.apib`), which makes it this package's greatest asset and its
-> largest liability. See [Owning the Specification](Sources/Salon1cAPI/Salon1cAPI.docc/SpecOwnership.md).
+> **Unofficial.** `openapi.yaml` is generated from the vendor's own OpenAPI 3.1 document
+> (редакция 3.0) — vendored verbatim at `Upstream/salon1c-openapi/api_salon1c.yaml` plus a
+> declared patch layer (`apply-patches.sh`) for the vendor's spec defects and this
+> project's choices. See [Owning the Specification](Sources/Salon1cAPI/Salon1cAPI.docc/SpecOwnership.md).
 > Unaffiliated with 1С.
 
 > **Status: in development** — the specification has not been exercised against the live
@@ -28,7 +28,7 @@ README disagree, believe the catalog. Build it with
 | Article | What it answers |
 |---|---|
 | [Design](Sources/Salon1cAPI/Salon1cAPI.docc/Design.md) | Every load-bearing decision, with the alternative that was rejected |
-| [Owning the Specification](Sources/Salon1cAPI/Salon1cAPI.docc/SpecOwnership.md) | Why `openapi.yaml` is hand-written, and what that obligates |
+| [Owning the Specification](Sources/Salon1cAPI/Salon1cAPI.docc/SpecOwnership.md) | The vendored-upstream + declared-patch model, and the patch register |
 | [Working with the 1С API](Sources/Salon1cAPI/Salon1cAPI.docc/WorkingWithSalon1c.md) | What the API actually does — documented quirks first, dated wire observations as they arrive |
 | [Tech Debt](Sources/Salon1cAPI/Salon1cAPI.docc/TechDebt.md) | Every compromise carried, what it costs, and what would retire it |
 | [Roadmap](Sources/Salon1cAPI/Salon1cAPI.docc/Roadmap.md) | Planned work in priority order |
@@ -43,7 +43,9 @@ Requires Swift 6.2 or newer, and iOS 17 / macOS 14 / tvOS 17 / watchOS 10 / visi
 
 ## Coverage
 
-53 operations in 10 groups — the full documented API, both `/hs/api/v1/` and `/hs/api/v2/`:
+62 operations — the full documented API, both `/hs/api/v1/` and `/hs/api/v2/`, including
+operations the older Blueprint never documented (`sale`, `payment_link`, `work_schedule`,
+`certificates`, `privacy_policy`):
 
 | Group | Operations |
 |---|---|
@@ -99,10 +101,11 @@ has authorized (see the `auth` group).
 ## Generated code
 
 `Client.swift` and `Types.swift` are produced by the generator **build plugin** on every
-build and are never committed. Editing `openapi.yaml` is the whole regeneration workflow —
-the reviewable diff is the diff of the document itself.
+build and are never committed. `openapi.yaml` itself is also generated — the reviewable
+workflow is the patch script:
 
 ```console
+% Upstream/salon1c-openapi/apply-patches.sh   # vendor yaml + patches → openapi.yaml
 % swift build
 ```
 
