@@ -102,4 +102,11 @@ struct MockServerTests {
         ).ok.body.json
         #expect(body.parameters?.cart?.first?.paymentObject == "service")
     }
+
+    @Test("getSalons .payload() unwraps the envelope end-to-end", .tags(.facade))
+    func salonsPayloadFacade() async throws {
+        let client = try LiveEnvironment.mockClient()
+        let salons = try await client.getSalons(path: .init(salonId: "mock-salon")).payload()
+        #expect(salons.first?.title != nil)
+    }
 }
