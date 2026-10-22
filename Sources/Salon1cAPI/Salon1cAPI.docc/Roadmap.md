@@ -3,13 +3,23 @@
 Planned work, in priority order. Nothing here ships until the item above it does —
 the package was built in that order too.
 
-## Now — vendor-spec adoption (`0.2.0` candidate)
+## Shipped — vendor-spec adoption (`0.2.0`)
 
 - **Vendor document is upstream** — `api_salon1c.yaml` + `apply-patches.sh`
-  pipeline landed with all 62 operations and 19 declared patches.
+  pipeline landed with all 62 operations and 26 declared patches (PR #15).
 - **Fresh-vendor adoption check** — the next time 1С republishes the document,
   every `Pn` entry is a re-verification checklist (TD-9).
-- **Tag** once the adoption PR is reviewed and merged.
+
+## Now — envelope-unwrapping facade (`0.3.0`)
+
+Pulled ahead of live access (owner decision, 2026-10-22): the consumer apps
+start now, and a facade generated *from* the spec regenerates when the wire
+corrects the spec — a handwritten one would not.
+
+- **Envelope unwrapping.** An opt-in `client.salons()`-style facade that maps the
+  six dialects to one result type and throws on `errors.code != 0`. It must be
+  generated *from* the spec — handwritten unwrappers per operation is how
+  dialects rot.
 
 ## Next — needs live access (TD-1)
 
@@ -25,12 +35,8 @@ The `Live API (mutating)` suite grows here too — `bookVisit`, `updateClient`,
 `refillDeposit` — each behind `SALON1C_ALLOW_MUTATING_LIVE_TESTS=1` and written
 only once a non-production salon is available to write to.
 
-## Then — convenience layer
+## Then — convenience layer, continued
 
-- **Envelope unwrapping.** An opt-in `client.salons()`-style facade that maps the
-  six dialects to one result type and throws on `errors.code != 0`. It must be
-  generated *from* the spec — handwritten unwrappers per operation is how
-  dialects rot.
 - **Error-code constants.** Once the catalog is complete (TD-3), generated
   constants for the documented codes — not an enum, so unknown codes still
   surface.
