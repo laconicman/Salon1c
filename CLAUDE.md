@@ -51,6 +51,9 @@ Render: `swift package generate-documentation --target Salon1cAPI`
 10. **Reference a debt item from code** as `// TODO(TD-n): …`.
 11. **Everything lands via PR.** `main` is protected; Devin Review runs on push and
     `REVIEW.md` steers it. No AI attribution in commit messages or PR descriptions.
+    Before merging, `contrib in laconicman/Salon1c --pr N` must read `owed 0` and
+    `to re-read 0`: inline findings get in-thread replies (a summary comment is not
+    a reply), review bodies get `contrib ack --with commit:…|comment:…|none:"…"`.
 12. **Documented behaviour is the contract until the wire disagrees.** There is no test
     credential yet; where a document contradicts itself — or the vendor YAML and the
     .apib contradict each other — the patch picks a shape and the conflict is a `TD-n`,
