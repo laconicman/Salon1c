@@ -106,6 +106,8 @@ contributed fresh instances:
 - `record_rating.comment` — declared `number` in *both* documents; the
   Blueprint's example sends `"Отличное обслуживание"`. Example wins — patched
   to `string` (`P26`).
+- `Errors.code` — declared `number`; the vendor's code table and every example
+  are integers — patched to `integer` (`P27`, singular `Error` too).
 - `cart_cost.user_token` — documented in the Blueprint's v1 field table (the
   anonymous-cart handle), absent from the vendor YAML — declared optional
   (`P25`).
@@ -143,7 +145,7 @@ Callers render or scrape them themselves.
 ## TD-9 — Vendor document defects carried as patches
 
 The vendor's OpenAPI 3.1 is richer than the Blueprint but not immaculate —
-26 patches in `apply-patches.sh` correct it, most being genuine defects rather
+27 patches in `apply-patches.sh` correct it, most being genuine defects rather
 than preferences. The mechanical ones worth re-checking when the vendor
 republishes:
 

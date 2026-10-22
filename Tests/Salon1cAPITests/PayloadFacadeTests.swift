@@ -1,5 +1,6 @@
 import Foundation
 import HTTPTypes
+import OpenAPIRuntime
 import Testing
 @testable import Salon1cAPI
 
@@ -91,6 +92,22 @@ struct PayloadFacadeTests {
         """#)
         await #expect(throws: Salon1cError.refused(code: 1050, message: "Не найден объект", operation: "getSalons")) {
             try await client.getSalons(path: .init(salonId: "test-salon")).payload()
+        }
+    }
+
+    @Test("an out-of-range errors.code is a decoding error, not a trap", .tags(.facade))
+    func outOfRangeCode() async throws {
+        // P27 declares `Errors.code` an integer: `1e20` no longer decodes into
+        // it — the generated call throws a `ClientError` instead of handing a
+        // Double to `Int(_:)`, which would trap the process.
+        let client = try Client.stubbed(json: #"""
+        {
+            "parameters": [],
+            "errors": {"code": 1e20, "message": "x"}
+        }
+        """#)
+        await #expect(throws: ClientError.self) {
+            try await client.getAuthTypes(path: .init(salonId: "test-salon")).payload()
         }
     }
 

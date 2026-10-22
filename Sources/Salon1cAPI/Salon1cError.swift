@@ -76,13 +76,13 @@ extension Salon1cError {
     /// (the vendor's examples send code 0, message "").
     static func check(_ errors: Components.Schemas.Errors?, operation: String) throws {
         guard let code = errors?.code, code != 0 else { return }
-        throw Salon1cError.refused(code: Int(code), message: errors?.message, operation: operation)
+        throw Salon1cError.refused(code: code, message: errors?.message, operation: operation)
     }
 
     init(status: Int, body: Components.Schemas.BadRequest, operation: String) {
         self = .status(
             status,
-            code: body.errors?.code.map(Int.init),
+            code: body.errors?.code,
             message: body.errors?.message,
             operation: operation
         )
@@ -91,7 +91,7 @@ extension Salon1cError {
     init(status: Int, body: Components.Schemas.InternalServerError, operation: String) {
         self = .status(
             status,
-            code: body.errors?.code.map(Int.init),
+            code: body.errors?.code,
             message: body.errors?.message,
             operation: operation
         )

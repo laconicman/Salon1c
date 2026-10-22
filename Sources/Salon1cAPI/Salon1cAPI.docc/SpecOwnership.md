@@ -57,6 +57,10 @@ Upstream never gets edited in place; the output file never gets edited at all.
   undocumented.
 - `P26` `record_rating.comment` declared `number` in *both* documents while
   both examples send a string — the example wins, as with `P19`.
+- `P27` `Errors.code` declared `number`, but the vendor's own «Коды ошибок»
+  table and every example are integers — declared `integer` so a malformed
+  code is a decoding error, not a Double-to-Int trap; the P11 singular
+  `Error` follows.
 
 **Project choices** (correct upstream, different here):
 
