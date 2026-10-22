@@ -59,7 +59,42 @@ variants. There is no `client.getSalons() -> [Salon]` that silently unwraps
   re-encoding the document's knowledge in Swift. The generated code already encodes it
   correctly.
 
-Unwrapping helpers are planned as an opt-in layer (<doc:Roadmap>), not a replacement.
+Unwrapping helpers exist as an opt-in layer (below), not a replacement.
+
+## Envelope unwrapping is generated from the generated types
+
+The opt-in facade is a generated extension on each operation's `Output` —
+`Operations+Payload.generated.swift`, produced by `Scripts/generate-facade.sh`,
+which runs the build, then scans the freshly generated `Types+Operations.swift`
+for envelope shapes and emits one `payload()` per operation (59 of 62;
+`authorize` and the two `text/html` operations are skipped — TD-10). The
+generated file is committed, exactly like `openapi.yaml`: a derived artifact
+kept in the tree so a diff is a spec change made visible.
+
+Each `payload()` folds the envelope into a value or a ``Salon1cError`` —
+`.refused` for `errors.code != 0` inside a 2xx, `.status` for a documented
+400/401/500, `.undocumentedStatus` for anything else, `.missingPayload` when a
+2xx envelope carries neither error nor payload. Paged operations return a
+``Paged`` — `Meta` on three, `Pagination` on `getComments` (TD-5).
+
+**Rejected:**
+
+- *Handwritten per-op unwrappers.* The Roadmap's own stance — dialect rot. A
+  handwritten table re-encodes knowledge the document already carries and
+  silently survives a spec change.
+- *Wrapper methods on `Client`.* They would re-derive the generator's
+  labelled-signature defaults (`query:`, `headers:`, `body:` per operation).
+  An `Output` extension keeps the generated call site and adds one chained
+  call instead.
+- *Deriving type names from the spec* by re-implementing the generator's
+  naming rules — fragile; the generated file already states every type
+  verbatim, so the script reads structure, it does not guess names.
+- *A SwiftPM build-tool plugin.* It would need a YAML parser dependency and
+  would hide the artifact in `.build`; a committed derived file matches how
+  `openapi.yaml` is handled.
+- *`payload()` returning `Optional`.* 49 of 58 object envelopes do not mark
+  `Parameters` required, so a 200 with neither payload nor error is reachable —
+  but it is a protocol violation, surfaced as `.missingPayload`, not `nil`.
 
 ## `operationId` names operations, via the patch layer
 

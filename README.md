@@ -89,8 +89,25 @@ lowercase `{parameters, errors}`, PascalCase `{Parameters, Errors, Meta}`, a sin
 `Error` variant, a `Request_id` hybrid, a bare `{Result}`, and `errors` nested *inside*
 `parameters` on `price_list`. All are wired exactly as documented — the dialect map is
 in [SpecOwnership](Sources/Salon1cAPI/Salon1cAPI.docc/SpecOwnership.md). A non-zero
-`errors.code` is a domain refusal (catalogue 1000–1114) inside HTTP 200, and today it
-surfaces as data — an unwrap convenience is on the roadmap.
+`errors.code` is a domain refusal (catalogue 1000–1114) inside HTTP 200.
+
+### Unwrapping envelopes
+
+Every `Output` of a JSON-envelope operation grows an opt-in `payload()` that returns the
+`parameters` (or `result`, or a `Paged` pair) and throws `Salon1cError` for everything
+else — `.refused` for a non-zero `errors.code`, `.status` for a documented non-2xx:
+
+```swift
+do {
+    let salons = try await client.getSalons(path: .init(salonId: "<salon-guid>")).payload()
+    print(salons.count)
+} catch let error as Salon1cError {
+    print("\(error.operation) failed: \(error.localizedDescription)")
+}
+```
+
+`authorize` and the two `text/html` operations have no envelope to unwrap (TD-10);
+their `Output` stays a `switch`.
 
 ### Two credential headers
 

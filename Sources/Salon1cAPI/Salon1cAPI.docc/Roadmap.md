@@ -10,16 +10,19 @@ the package was built in that order too.
 - **Fresh-vendor adoption check** — the next time 1С republishes the document,
   every `Pn` entry is a re-verification checklist (TD-9).
 
-## Now — envelope-unwrapping facade (`0.3.0`)
+## Shipped — envelope-unwrapping facade (`0.3.0`)
+
+- **`payload()` on every envelope `Output`** — 59 of 62 operations; `authorize`
+  (oneOf envelope) and the two `text/html` operations are skipped (TD-10).
+  Generated from the generated types by `Scripts/generate-facade.sh`, committed
+  as `Operations+Payload.generated.swift`, deterministic.
+- **`Salon1cError`** folds the envelope's error channels — `.refused`,
+  `.status`, `.undocumentedStatus`, `.missingPayload` — without merging them;
+  **`Paged`** carries `Meta`/`Pagination` alongside list payloads.
 
 Pulled ahead of live access (owner decision, 2026-10-22): the consumer apps
 start now, and a facade generated *from* the spec regenerates when the wire
 corrects the spec — a handwritten one would not.
-
-- **Envelope unwrapping.** An opt-in `client.salons()`-style facade that maps the
-  six dialects to one result type and throws on `errors.code != 0`. It must be
-  generated *from* the spec — handwritten unwrappers per operation is how
-  dialects rot.
 
 ## Next — needs live access (TD-1)
 

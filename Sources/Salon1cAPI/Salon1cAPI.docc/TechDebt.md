@@ -166,3 +166,17 @@ becomes a silent no-op or a stale conflict — each patch comment names what to
 re-verify.
 **Discharge:** upstream publishes a corrected revision; shrinking the patch
 script on adoption.
+
+## TD-10 — Three operations have no `payload()`
+
+`authorize` (success body is a `oneOf` envelope — «code sent» vs «token issued»,
+not a `JsonPayload` struct) and `getPublicOffer`/`getPrivacyPolicy` (`text/html`,
+no JSON body) are skipped by the facade generator; its header comment names them.
+`authorize` gets a hand-shaped outcome together with the auth flow; the HTML
+operations need none — the caller wants the markup itself.
+
+**Cost:** the facade's convenience does not reach `authorize`; callers `switch`
+on its `Output` directly, which is the honest shape for a two-variant answer
+anyway.
+**Discharge:** a designed auth flow — `authorize` folds into it; the HTML
+operations stay unwrapped permanently.
