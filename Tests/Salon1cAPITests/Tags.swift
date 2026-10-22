@@ -22,4 +22,9 @@ extension Tag {
 
     /// Pins a bug that shipped. Deleting one of these needs a reason.
     @Tag static var regression: Self
+
+    /// Exercises `payload()` — the generated envelope-unwrapping facade — and
+    /// `Salon1cError`. `Operations+Payload.generated.swift` is derived; these
+    /// tests are its contract.
+    @Tag static var facade: Self
 }

@@ -30,7 +30,15 @@ this file — nothing here restates it. These are the diff-level cues and the no
 - Reject hand-written Swift that reshapes or wraps a `Components.Schemas.*` type — the fix
   belongs in `apply-patches.sh` as a new patch entry.
 - Reject committed generated code: a reappearing `Sources/GeneratedSources/` directory, or
-  a committed `Client.swift` / `Types.swift`.
+  a committed `Client.swift` / `Types.swift`. The exception is
+  `Sources/Salon1cAPI/Operations+Payload.generated.swift` — *our* derived artifact,
+  committed by design; flag **hand edits** to it (any diff not produced by
+  `Scripts/generate-facade.sh`), and flag a facade that drifts from `openapi.yaml`
+  in the same PR — regeneration must be byte-identical, so a spec change without a
+  regenerated facade (or a facade change without a spec change) is suspect.
+- Flag a `Salon1cError` change that merges channels — `.refused` (domain refusal in a
+  2xx envelope) and `.status`/`.undocumentedStatus` (transport-level status) must stay
+  distinguishable.
 - Flag a status flip of a `TD-n` entry in
   `Sources/Salon1cAPI/Salon1cAPI.docc/TechDebt.md` that does not name what discharged it.
 - Flag a new `// TODO` in `Sources/` that carries no `TD-n` register number.

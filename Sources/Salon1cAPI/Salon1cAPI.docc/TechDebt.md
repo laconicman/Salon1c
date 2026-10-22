@@ -106,6 +106,8 @@ contributed fresh instances:
 - `record_rating.comment` — declared `number` in *both* documents; the
   Blueprint's example sends `"Отличное обслуживание"`. Example wins — patched
   to `string` (`P26`).
+- `Errors.code` — declared `number`; the vendor's code table and every example
+  are integers — patched to `integer` (`P27`, singular `Error` too).
 - `cart_cost.user_token` — documented in the Blueprint's v1 field table (the
   anonymous-cart handle), absent from the vendor YAML — declared optional
   (`P25`).
@@ -143,7 +145,7 @@ Callers render or scrape them themselves.
 ## TD-9 — Vendor document defects carried as patches
 
 The vendor's OpenAPI 3.1 is richer than the Blueprint but not immaculate —
-26 patches in `apply-patches.sh` correct it, most being genuine defects rather
+27 patches in `apply-patches.sh` correct it, most being genuine defects rather
 than preferences. The mechanical ones worth re-checking when the vendor
 republishes:
 
@@ -166,3 +168,17 @@ becomes a silent no-op or a stale conflict — each patch comment names what to
 re-verify.
 **Discharge:** upstream publishes a corrected revision; shrinking the patch
 script on adoption.
+
+## TD-10 — Three operations have no `payload()`
+
+`authorize` (success body is a `oneOf` envelope — «code sent» vs «token issued»,
+not a `JsonPayload` struct) and `getPublicOffer`/`getPrivacyPolicy` (`text/html`,
+no JSON body) are skipped by the facade generator; its header comment names them.
+`authorize` gets a hand-shaped outcome together with the auth flow; the HTML
+operations need none — the caller wants the markup itself.
+
+**Cost:** the facade's convenience does not reach `authorize`; callers `switch`
+on its `Output` directly, which is the honest shape for a two-variant answer
+anyway.
+**Discharge:** a designed auth flow — `authorize` folds into it; the HTML
+operations stay unwrapped permanently.

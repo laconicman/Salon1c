@@ -140,7 +140,7 @@ paths:
                       Errors:
                         $ref: "#/components/schemas/Errors"
                       Error:
-                        type: number
+                        type: integer
                         description: Код ошибки (сингулярный диалект примера)
                       ErrorMessage:
                         type: string
@@ -6983,7 +6983,7 @@ components:
       properties:
         code:
           description: Код ошибки (см. Дополнительная информация)
-          type: [number, "null"]
+          type: [integer, "null"]
           example: 0
         message:
           description: Описание ошибки (см. Дополнительная информация)

@@ -307,6 +307,15 @@ yq -i '.paths."/hs/api/v1/cart_cost/{salon_id}/".get.responses."200".content."ap
 # carry a comment; as with P19 the example takes precedence. TD-6 class.
 yq -i '.paths."/hs/api/v1/record_rating/{salon_id}".post.requestBody.content."application/json".schema.properties.comment.type = "string"' "$WORK"
 
+# P27 — `Errors.code` is declared `number`, but the vendor's own «Коды ошибок»
+# table (PDF, «Дополнительная информация»: 1000–1017…) and every example
+# (0, 1000, 1050) are integers. Declared `integer`, a malformed code becomes a
+# catchable decoding error; converting a Double in Swift would trap on a
+# non-finite or out-of-range value (Devin Review, PR #17). The P11 singular
+# `Error` is the same code and follows.
+yq -i '.components.schemas.Errors.properties.code.type = ["integer", "null"]' "$WORK"
+yq -i '.paths."/hs/api/v1/auth/{salon_id}/".post.responses."200".content."application/json".schema.oneOf[0].properties.Error.type = "integer"' "$WORK"
+
 # Header marking the file as generated output.
 { echo '# -----------------------------------------------------------------'
   echo '# GENERATED FILE — do not edit by hand.'

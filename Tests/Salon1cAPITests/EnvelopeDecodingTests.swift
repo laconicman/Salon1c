@@ -750,6 +750,14 @@ struct EnvelopeDecodingTests {
         #expect(updated.parameters?.first?._type == "active")
     }
 
+    @Test("Errors.code is an integer (P27)", .tags(.specContract))
+    func errorsCodeInteger() {
+        // The typed `let` is the point: a revert to `Double` fails to compile.
+        let errors = Components.Schemas.Errors(code: 1000, message: nil)
+        let code: Int? = errors.code
+        #expect(code == 1000)
+    }
+
     @Test("getPrivacyPolicy returns the html body case", .tags(.specContract))
     func privacyPolicyHTMLBody() async throws {
         let client = try Client.stubbed(json: "<html><body>Политика</body></html>", contentType: "text/html")
