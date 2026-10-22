@@ -24,6 +24,13 @@ Pulled ahead of live access (owner decision, 2026-10-22): the consumer apps
 start now, and a facade generated *from* the spec regenerates when the wire
 corrects the spec — a handwritten one would not.
 
+## Shipped — transport seam on the convenience init (`0.3.1`)
+
+- **`Client.init` takes a `transport:`** — the convenience init forwards a caller's
+  transport (a configured `URLSessionTransport` for a request timeout, a stub in
+  tests) while keeping the auth + OSLog middleware chain; the sibling
+  YandexDeliveryExpress 0.3.1 precedent.
+
 ## Next — needs live access (TD-1)
 
 Everything that requires the **real** host to answer: run the dormant `Live API`

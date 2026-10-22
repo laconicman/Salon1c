@@ -67,6 +67,8 @@ import Foundation
 import Salon1cAPI
 
 let client = try Client(credentials: .init(apiKey: "<apikey>", userToken: "<usertoken>"))
+// The convenience init also takes transport: — a configured URLSessionTransport for
+// a request timeout, or a stub in tests — and keeps the auth + logging chain.
 
 let response = try await client.getAuthTypes(path: .init(salonId: "<salon-guid>"))
 switch response {

@@ -15,15 +15,20 @@ public extension Client {
     ///   - bodyLoggingConfiguration: Request and response bodies carry client names,
     ///     phone numbers, birthdays and payment amounts, so nothing is logged unless
     ///     you opt in.
+    ///   - transport: Defaults to `URLSessionTransport()` — a `URLSession` with the
+    ///     platform's 60-second request timeout. Pass a configured one for a request
+    ///     timeout, or a stub in tests.
     init(
         serverURL: URL? = nil,
         credentials: Credentials,
-        bodyLoggingConfiguration: BodyLoggingPolicy = .never
+        bodyLoggingConfiguration: BodyLoggingPolicy = .never,
+        transport: any ClientTransport = URLSessionTransport()
     ) throws {
         try self.init(
             serverURL: serverURL,
             credentials: credentials,
-            middlewares: [OSLogLoggingMiddleware(bodyLoggingConfiguration: bodyLoggingConfiguration)]
+            middlewares: [OSLogLoggingMiddleware(bodyLoggingConfiguration: bodyLoggingConfiguration)],
+            transport: transport
         )
     }
 
