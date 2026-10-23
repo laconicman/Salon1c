@@ -18,6 +18,11 @@ let package = Package(
         // generated client into missing-member errors.
         .package(url: "https://github.com/apple/swift-openapi-runtime", from: "1.13.0"),
         .package(url: "https://github.com/apple/swift-openapi-urlsession", from: "1.3.1"),
+        // Same defect class as OSLogLoggingMiddleware 1.1.0: AuthMiddleware and
+        // Client+init import HTTPTypes, which only ever arrived transitively through the
+        // runtime/transport. Declare it — a consumer linking Salon1cAPI as a dynamic
+        // package framework otherwise gets undefined HTTPTypes symbols at link time.
+        .package(url: "https://github.com/apple/swift-http-types", from: "1.0.0"),
         // 1.1.1 is the floor, not a coincidence: earlier manifests declared only the URLSession
         // transport and reached `OpenAPIRuntime` transitively — fine when linked statically, a
         // missing-symbol link failure when Xcode builds a consumer product as a dynamic package
@@ -35,6 +40,7 @@ let package = Package(
             dependencies: [
                 .product(name: "OpenAPIRuntime", package: "swift-openapi-runtime"),
                 .product(name: "OpenAPIURLSession", package: "swift-openapi-urlsession"),
+                .product(name: "HTTPTypes", package: "swift-http-types"),
                 .product(name: "OSLogLoggingMiddleware", package: "OSLogLoggingMiddleware")
             ],
             // `.defaultIsolation(nil)` spells the policy explicitly: nonisolated
@@ -54,7 +60,10 @@ let package = Package(
         ),
         .testTarget(
             name: "Salon1cAPITests",
-            dependencies: ["Salon1cAPI"]
+            dependencies: [
+                "Salon1cAPI",
+                .product(name: "HTTPTypes", package: "swift-http-types")
+            ]
         )
     ]
 )
