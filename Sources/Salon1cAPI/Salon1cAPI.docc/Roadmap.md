@@ -31,11 +31,14 @@ corrects the spec — a handwritten one would not.
   tests) while keeping the auth + OSLog middleware chain; the sibling
   YandexDeliveryExpress 0.3.1 precedent.
 
-## Shipped — OSLogLoggingMiddleware floor (`0.3.2`)
+## Shipped — dynamic-framework consumers link (`0.3.2`, `0.3.3`)
 
-- **OSLogLoggingMiddleware ≥ 1.1.1** — the transport-free upstream manifest; a
-  consumer can now build `Salon1cAPI` into a dynamic package framework
-  (`Salon1cApps` SA-8 discharges against this tag).
+- **OSLogLoggingMiddleware ≥ 1.1.1** (0.3.2) — the transport-free upstream manifest.
+- **`HTTPTypes` declared** (0.3.3) — `AuthMiddleware` and `Client+init` had imported it
+  transitively, the same defect class one level up; 0.3.2's claim that a consumer could
+  already build `Salon1cAPI` into a dynamic package framework was wrong — the
+  `Salon1cApps` two-consumer build is what exposed it. 0.3.3 is the first tag at which
+  that build links (`Salon1cApps` SA-8 discharges against it).
 
 ## Next — needs live access (TD-1)
 

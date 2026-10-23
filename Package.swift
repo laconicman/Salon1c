@@ -62,6 +62,7 @@ let package = Package(
             name: "Salon1cAPITests",
             dependencies: [
                 "Salon1cAPI",
+                .product(name: "OpenAPIRuntime", package: "swift-openapi-runtime"),
                 .product(name: "HTTPTypes", package: "swift-http-types")
             ]
         )
