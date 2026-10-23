@@ -42,6 +42,10 @@ this file — nothing here restates it. These are the diff-level cues and the no
 - Flag a status flip of a `TD-n` entry in
   `Sources/Salon1cAPI/Salon1cAPI.docc/TechDebt.md` that does not name what discharged it.
 - Flag a new `// TODO` in `Sources/` that carries no `TD-n` register number.
+- Flag a new `import` in `Sources/` or `Tests/` whose module is not a declared
+  product of that target — transitive availability hides the gap until a consumer
+  links the product as a dynamic framework (the HTTPTypes omission shipped through
+  0.3.2).
 - Require a new live test to carry the `Live API` suite prefix and gate on
   `LiveEnvironment.salon` (`SALON1C_API_KEY` + `SALON1C_SALON_ID`); require
   `LiveEnvironment.mutatingAllowed` if it creates or mutates server state.
