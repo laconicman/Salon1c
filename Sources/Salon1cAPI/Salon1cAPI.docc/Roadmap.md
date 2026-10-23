@@ -31,6 +31,12 @@ corrects the spec — a handwritten one would not.
   tests) while keeping the auth + OSLog middleware chain; the sibling
   YandexDeliveryExpress 0.3.1 precedent.
 
+## Shipped — OSLogLoggingMiddleware floor (`0.3.2`)
+
+- **OSLogLoggingMiddleware ≥ 1.1.1** — the transport-free upstream manifest; a
+  consumer can now build `Salon1cAPI` into a dynamic package framework
+  (`Salon1cApps` SA-8 discharges against this tag).
+
 ## Next — needs live access (TD-1)
 
 Everything that requires the **real** host to answer: run the dormant `Live API`

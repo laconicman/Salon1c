@@ -18,7 +18,11 @@ let package = Package(
         // generated client into missing-member errors.
         .package(url: "https://github.com/apple/swift-openapi-runtime", from: "1.13.0"),
         .package(url: "https://github.com/apple/swift-openapi-urlsession", from: "1.3.1"),
-        .package(url: "https://github.com/laconicman/OSLogLoggingMiddleware", from: "1.0.0"),
+        // 1.1.1 is the floor, not a coincidence: earlier manifests declared only the URLSession
+        // transport and reached `OpenAPIRuntime` transitively — fine when linked statically, a
+        // missing-symbol link failure when Xcode builds a consumer product as a dynamic package
+        // framework (laconicman/OSLogLoggingMiddleware#1; Salon1cApps carries the workaround as SA-8).
+        .package(url: "https://github.com/laconicman/OSLogLoggingMiddleware", from: "1.1.1"),
         // Renders the DocC catalog, including the direction articles. Deliberately **not**
         // listed in any target's `plugins:` — it is a *command* plugin, invoked as
         // `swift package generate-documentation`. Attaching it to the library target would be
